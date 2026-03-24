@@ -29,11 +29,15 @@ A coach can drop in any match video and immediately see annotated footage with p
 - ✓ Team heatmap display on clip pages (two-column, team-colored) — v1.0
 - ✓ 2-clip NC State D1 gallery, plain-English "How It Works", zero ML jargon — v1.0
 
-### Active (v1.1+)
+### Active (v2.0)
 
-- [ ] Pass/event detection (passes, shots, shots on target, assists)
-- [ ] Interactive heatmaps with per-player toggle and time-slice filtering
-- [ ] Video upload web app (FastAPI backend + Next.js frontend)
+- [ ] Pass detection — identify ball transfers between players
+- [ ] Shot detection — detect goal attempts, tag on/off target
+- [ ] Assist tagging — link pass immediately preceding a shot to the assisting player
+- [ ] Perspective calibration — pitch keypoint detection to replace estimated vertices (fixes ~268 km/h ghost speeds)
+- [ ] Tracking stability — reduce ByteTrack ID switches and ghost players
+- [ ] Individual player heatmaps — static PNG per player (primary); interactive player-toggle (stretch)
+- [ ] Site updates — display event stats and per-player heatmaps on clip pages
 
 ### Out of Scope
 
@@ -42,9 +46,19 @@ A coach can drop in any match video and immediately see annotated footage with p
 - Mobile app — not needed for coach demo
 - Multi-match comparison dashboard — future feature after validated
 
+## Current Milestone: v2.0 Advanced Analytics
+
+**Goal:** Upgrade the pipeline with event detection (passes, shots, assists), calibrated accuracy (real pitch keypoints), and per-player heatmaps — all delivered through the existing static demo site.
+
+**Target features:**
+- Pass, shot, and assist detection
+- Perspective calibration + tracking stability improvements
+- Individual player heatmaps (static PNGs; interactive stretch)
+- Site updates for new stats and per-player heatmaps
+
 ## Context
 
-- **Current state:** v1.0 MVP shipped (2026-03-20) — demo site live at krishnaikgaunekar.github.io/Korner-Flags_stats/ with 2 NC State clips, annotated video, stats, heatmaps, and plain-English explainer. Full pipeline working locally. Next: v1.1 event detection or video upload app.
+- **Current state:** v2.0 in progress (started 2026-03-24). v1.0 MVP shipped (2026-03-20) — demo site live at krishnaikgaunekar.github.io/Korner-Flags_stats/ with 2 NC State clips, annotated video, stats, heatmaps, and plain-English explainer. Full pipeline working locally.
 - **Demo target:** NC State soccer coaching staff — site is ready to share
 - **Domain:** Custom domain available for deployment when needed
 - **Codebase state:** ~4,500 LOC Python + Astro/TypeScript. Perspective transform uses estimated pitch vertices (no calibration). No test suite for pipeline inference code. `tests/` covers data export and heatmap generation only.
@@ -70,5 +84,22 @@ A coach can drop in any match video and immediately see annotated footage with p
 | Plyr for video player | Open-source, CSS-customizable, no server dependency | ✓ Good |
 | FastAPI + Next.js for Phase 2 web app | Standard stack for ML-backed web apps; clean separation of concerns | — Planned for v1.1+ |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-20 after v1.0 milestone*
+*Last updated: 2026-03-24 — milestone v2.0 started*

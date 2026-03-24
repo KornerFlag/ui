@@ -1,30 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: milestone_complete
-stopped_at: v1.0 MVP milestone shipped 2026-03-20
-last_updated: "2026-03-20T01:15:00.835Z"
+milestone: v2.0
+milestone_name: Advanced Analytics
+status: defining_requirements
+stopped_at: Milestone v2.0 started 2026-03-24
+last_updated: "2026-03-24T00:00:00.000Z"
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-20)
+See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** A coach can drop in any match video and immediately see annotated footage with player tracking, possession %, and speed/distance stats — no setup, no expertise required.
-**Current focus:** Planning next milestone (v1.1+)
+**Current focus:** v2.0 Advanced Analytics — event detection, accuracy, individual heatmaps
 
 ## Current Position
 
-Milestone v1.0 MVP — COMPLETE (all 6 phases, 14 plans)
-Next: `/gsd:new-milestone` to plan v1.1
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-24 — Milestone v2.0 started
 
 ## Performance Metrics
 
