@@ -72,31 +72,29 @@ All 20 v1.0 requirements shipped. See `.planning/milestones/v1.0-REQUIREMENTS.md
 
 ## Traceability
 
-Populated by roadmapper. Updated after each phase completes.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TRACK-01 | — | Pending |
-| TRACK-02 | — | Pending |
-| CALIB-01 | — | Pending |
-| CALIB-02 | — | Pending |
-| CALIB-03 | — | Pending |
-| EVENT-01 | — | Pending |
-| EVENT-02 | — | Pending |
-| EVENT-03 | — | Pending |
-| EVENT-04 | — | Pending |
-| EVENT-05 | — | Pending |
-| HEAT-01 | — | Pending |
-| HEAT-02 | — | Pending |
-| SITE-09 | — | Pending |
-| SITE-10 | — | Pending |
-| SITE-11 | — | Pending |
+| TRACK-01 | Phase 7 | Pending |
+| TRACK-02 | Phase 7 | Pending |
+| CALIB-01 | Phase 8 | Pending |
+| CALIB-02 | Phase 8 | Pending |
+| CALIB-03 | Phase 8 | Pending |
+| EVENT-01 | Phase 10 | Pending |
+| EVENT-02 | Phase 10 | Pending |
+| EVENT-03 | Phase 10 | Pending |
+| EVENT-04 | Phase 10 | Pending |
+| EVENT-05 | Phase 10 | Pending |
+| HEAT-01 | Phase 9 | Pending |
+| HEAT-02 | Phase 9 | Pending |
+| SITE-09 | Phase 11 | Pending |
+| SITE-10 | Phase 11 | Pending |
+| SITE-11 | Phase 11 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 15 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 15 ⚠️
+- Mapped to phases: 15
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after v2.0 milestone definition*
+*Last updated: 2026-03-25 — traceability populated after v2.0 roadmap creation*
