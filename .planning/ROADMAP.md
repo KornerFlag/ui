@@ -36,7 +36,11 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
   2. Ghost player entries (fewer than 10 consecutive frames) are absent from the stats JSON, positions.json, and any future event output
   3. Speed and distance values in the stats JSON accumulate correctly for each physical player without fragmentation across split IDs
   4. Team color assignments are not corrupted by short-lived ghost IDs on re-entry frames
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Ghost filter utility (TDD): create filter_ghost_tracks in utils/track_utils.py with full test coverage
+- [ ] 07-02-PLAN.md — ByteTrack tuning and pipeline wiring: tune sv.ByteTrack parameters, wire ghost filter into main.py
 
 ### Phase 8: Pitch Keypoint Calibration
 **Goal**: The pipeline uses detected pitch keypoints to compute a calibrated homography, eliminating ghost speeds and providing accurate real-world coordinates for all spatial stats
@@ -98,7 +102,7 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
 | 4. Stats Visualizations | v1.0 | 2/2 | Complete | 2026-03-19 |
 | 5. Heatmap Visualizations | v1.0 | 1/1 | Complete | 2026-03-20 |
 | 6. Polish and Demo Readiness | v1.0 | 1/1 | Complete | 2026-03-20 |
-| 7. Tracking Stability | v2.0 | 0/TBD | Not started | - |
+| 7. Tracking Stability | v2.0 | 0/2 | Planning complete | - |
 | 8. Pitch Keypoint Calibration | v2.0 | 0/TBD | Not started | - |
 | 9. Individual Player Heatmaps | v2.0 | 0/TBD | Not started | - |
 | 10. Event Detection | v2.0 | 0/TBD | Not started | - |
