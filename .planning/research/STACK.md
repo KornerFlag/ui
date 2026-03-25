@@ -1,122 +1,226 @@
 # Stack Research
 
-**Domain:** Static soccer analysis demo site + Python heatmap pipeline extension
-**Researched:** 2026-03-16
-**Confidence:** MEDIUM-HIGH (web stack HIGH, Python heatmap additions HIGH, video hosting MEDIUM due to GitHub Pages constraints)
+**Domain:** Soccer video analysis pipeline — v2.0 feature additions
+**Researched:** 2026-03-24
+**Confidence:** HIGH for tracking stability and individual heatmaps (existing libs, extend only); MEDIUM for pitch calibration (model choice depends on dataset); MEDIUM for event detection (rule-based logic, no new lib needed)
 
 ---
 
 ## Context
 
-The existing pipeline (Python, YOLO11, ByteTrack, OpenCV, supervision) is complete and out of scope for this milestone. This research covers two new concerns:
+The v1.0 pipeline is complete and validated. This research covers **only** what is needed for the four new v2.0 capabilities:
 
-1. **Demo site stack** — static GitHub Pages site displaying pre-processed annotated videos and stats
-2. **Python heatmap additions** — extending the existing pipeline to generate heatmap images alongside the current output
+1. Pass / shot / assist event detection
+2. Pitch keypoint calibration (replacing estimated perspective vertices)
+3. ByteTrack ID-switch reduction and tracking stability
+4. Individual player heatmaps (static PNG per player; interactive stretch goal)
+
+The existing stack (`ultralytics>=8.0.0`, `supervision>=0.18.0`, `opencv-python-headless>=4.8.0`, `numpy>=1.24.0`, `pandas>=2.0.0`, `scikit-learn>=1.3.0`, `mplsoccer>=1.6.0`) is not replaced. Every decision below is an **addition** or a **configuration change** to that foundation.
 
 ---
 
 ## Recommended Stack
 
-### Demo Site: Core Technologies
+### Core Technologies (Existing — Do Not Change)
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Astro | 5.x (latest) | Static site generator / build tool | Ships zero JS by default; Markdown + HTML pages work natively; official GitHub Actions deployment support; content-focused sites are its primary use case; faster build than Jekyll |
-| Plyr | 3.8.4 | HTML5 video player | ~7 kB gzipped, no dependencies, keyboard/screen-reader accessible, customizable CSS, plays standard MP4/WebM directly; last published 2 months ago (active) |
-| Chart.js | 4.5.1 | Stats visualization (possession %, speed, distance bar/donut charts) | Framework-agnostic CDN usage; minimal setup; works with vanilla JS; 6 chart types cover all demo stats needs; the standard choice for "ship something fast" dashboards |
-| Tailwind CSS | 3.x | Styling | Utility-first; works as PostCSS in Astro with zero config; produces minimal CSS in production builds; avoids custom CSS sprawl on a 1-2 week timeline |
+| Technology | Installed Version | Role in v2.0 |
+|------------|------------------|--------------|
+| ultralytics | >=8.0.0 | YOLO11 detection — unchanged; YOLO11 keypoint pose model added for pitch calibration |
+| supervision | 0.27.0.post2 | ByteTrack already here; tune parameters for stability (no library change) |
+| opencv-python-headless | >=4.8.0 | `cv2.findHomography`, `cv2.perspectiveTransform` already used; no new calls needed |
+| mplsoccer | >=1.6.0 | Already generates team heatmaps; per-player PNGs use same `Pitch` + `bin_statistic` API |
+| pandas | >=2.0.0 | Already tracks positions; event detection uses existing per-frame DataFrame logic |
 
-### Demo Site: Video Hosting
+### New Additions
 
-| Approach | Cost | Recommendation |
-|----------|------|----------------|
-| Cloudflare R2 + public bucket | Free tier: 10 GB storage, 0 egress fees | **PRIMARY RECOMMENDATION** — upload MP4s to R2 public bucket, reference URLs in site JSON config; zero bandwidth cost; video files never enter the Git repo |
-| YouTube unlisted embeds | Free | **FALLBACK** — If R2 setup is too slow for demo deadline; iframe embeds work directly in GitHub Pages; loses branded player control but is zero friction |
-| Git LFS | NOT SUPPORTED | Git LFS cannot be used with GitHub Pages — files are served as pointer text, not the binary. Do not attempt. |
-
-**Decision rationale:** GitHub enforces a 100 MB per-file hard limit and Git LFS is explicitly unsupported on GitHub Pages. Annotated soccer match clips will easily exceed 100 MB. Cloudflare R2 has no egress fees (unlike S3 or GCS), a 10 GB free tier, and public bucket URLs are simple `<video src="...">` drops. Setup takes under 30 minutes with the Cloudflare dashboard.
-
-### Demo Site: Supporting Libraries
-
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| Chart.js chartjs-plugin-datalabels | 2.2.0 | Show numeric values directly on charts | Use on possession donut chart for clean % labels without hover |
-| Alpine.js | 3.14.x | Lightweight JS interactivity (tab switching, clip selection) | Use if you need any reactive UI state without React/Vue overhead; ~15 kB; compatible with Astro's islands architecture |
-| canvas-confetti | — | One-time polish effect | Skip unless demo mood calls for it |
-
-### Heatmap Generation: Python Additions
-
-| Library | Version | Purpose | Why Recommended |
-|---------|---------|---------|-----------------|
-| mplsoccer | 1.6.1 | Soccer pitch drawing + heatmap rendering on correctly proportioned pitch | Purpose-built for this exact use case; `Pitch.heatmap()` method takes x/y bins directly; produces publication-quality pitch images; released November 2025 |
-| matplotlib | >=3.6.0 (already transitive) | Render and save heatmap PNG | mplsoccer renders to matplotlib figures; `fig.savefig("heatmap.png", dpi=150, bbox_inches="tight")` writes the output |
-| scipy | >=1.9.0 | `gaussian_kde` / `ndimage.gaussian_filter` for density smoothing | Smooths sparse player position data into a continuous density field before binning; prevents patchy heatmaps from limited clips |
-| numpy | >=1.24.0 (already in stack) | Position array accumulation across frames | Already a dependency; no new install needed |
-
-**Why mplsoccer over raw matplotlib:** mplsoccer draws a correctly-proportioned soccer pitch (with penalty area, center circle, goal boxes) at the right aspect ratio, supports multiple pitch standard coordinate systems (StatsBomb, Opta, custom), and its `bin_statistic` + `heatmap` methods handle the binning pipeline in two lines. Rolling your own pitch geometry with matplotlib patches takes ~150 lines and still looks worse.
-
-**Why NOT the Ultralytics built-in heatmap:** The Ultralytics Heatmap solution (`from ultralytics.solutions import Heatmap`) renders heatmap overlays on the raw video frame, not on a pitch diagram. This is useful for motion visualization but does not produce a clean, shareable pitch heatmap PNG suitable for a demo site panel. Use mplsoccer for the shareable static image and Ultralytics' solution only if you want heatmap video output.
+| Library | Version | Purpose | Why This, Not Something Else |
+|---------|---------|---------|------------------------------|
+| `sports` (roboflow/sports) | `git+https://github.com/roboflow/sports.git` | `SoccerPitchConfiguration` — defines 32 canonical pitch keypoint coordinates as the reference frame for homography | No pip release yet; install from source. Provides the pitch template (real-world coordinates of each keypoint) that pairs with the YOLO keypoint model output. Avoids hardcoding a lookup table manually. |
+| No new library for event detection | — | Rule-based pass/shot/assist logic written in Python using existing `tracks` dict + ball positions | Academic benchmarks show rule-based systems achieve F-score 0.93 for passes, 0.95 for shots — good enough; no ML event model needed for v2.0 scope |
+| No new library for individual heatmaps | — | `mplsoccer.Pitch.bin_statistic` + `pitch.heatmap` already used for team heatmaps; per-player loop uses identical API | mplsoccer 1.6.1 already installed and supports per-player filtering; adding a loop is 20 lines of code, not a new dependency |
+| No new library for tracking stability | — | `sv.ByteTrack` parameter tuning: raise `minimum_consecutive_frames`, tune `lost_track_buffer` | Already in supervision 0.27; no separate tracker library needed |
 
 ---
 
-### Development Tools
+## Detailed Decisions by Feature Area
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| Astro CLI (`npm create astro@latest`) | Scaffold and local dev server | `npx astro dev` watches changes with HMR; `npx astro build` emits to `dist/` |
-| GitHub Actions (`withastro/action@v3`) | CI/CD to GitHub Pages | Official Astro action handles Node setup, build, and Pages deployment in one workflow file; no manual setup |
-| Wrangler CLI (Cloudflare) | Upload MP4s to R2 | `wrangler r2 object put bucket/clip.mp4 --file=clip.mp4`; one-time upload per processed video |
-| Python `venv` | Isolate heatmap dependencies | mplsoccer pulls in seaborn + matplotlib; use existing venv or create new one to avoid conflicts |
+### 1. Pass / Shot / Assist Event Detection
+
+**Decision: Rule-based Python logic. No new library.**
+
+The existing pipeline already produces, per frame:
+- Ball position (interpolated, in both pixel and transformed meter coordinates)
+- Per-player `track_id`, team assignment, foot position, ball possession flag
+- 15-frame possession smoothing
+
+Events can be derived from possession-change transitions in the existing `tracks` data structure:
+
+- **Pass:** Possession transfers from player A to player B on the **same team**
+- **Shot:** Ball possession ends with no immediate teammate pickup (ball leaves the pitch region, or possession is lost without opponent pickup)
+- **Assist:** The last completed pass to a player who then records a shot within a configurable window (default: 5 seconds / ~125 frames)
+
+This approach is consistent with published rule-based methods that achieve F-score ≥ 0.86 for passes and 0.95 for shots on tracking data. No external event detection library is warranted at v2.0 scope.
+
+**What to build:** A new `event_detector/` module, ~150–200 LOC, reading the existing `tracks` dict and outputting `events.json` alongside the existing `stats.json`.
+
+**Confidence:** MEDIUM. Rule-based accuracy degrades when tracking is noisy (ID switches cause false possession changes). Tracking stability (feature 3) must be addressed first to get clean input to event detection.
 
 ---
 
-## Installation
+### 2. Pitch Keypoint Calibration
 
-### Demo Site
+**Decision: YOLO11 keypoint model (fine-tuned on Roboflow football-field-detection dataset) + `roboflow/sports` pitch config + `cv2.findHomography`.**
 
-```bash
-# Scaffold Astro project
-npm create astro@latest korner-flags-site
-cd korner-flags-site
+**Problem:** The current `ViewTransformer` uses four hardcoded estimated vertices, producing wildly incorrect speed estimates (reported ~268 km/h ghost speeds). Real calibration detects ~32 pitch keypoints per frame and computes a robust homography.
 
-# Add Tailwind integration
-npx astro add tailwind
+**Two-component approach:**
 
-# Chart.js via CDN in Astro component — no npm install needed for static use
-# <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+**Component A — Keypoint Detection Model**
 
-# Plyr via CDN
-# <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.8.4/dist/plyr.css">
-# <script src="https://cdn.jsdelivr.net/npm/plyr@3.8.4/dist/plyr.min.js"></script>
+Use a YOLO11-pose model fine-tuned on the Roboflow `football-field-detection` dataset (32 keypoints, publicly available at `universe.roboflow.com/roboflow-jvuqo/football-field-detection-f07vi`). The model outputs per-keypoint (x, y, confidence) for each visible keypoint in a frame.
+
+- Why YOLO11-pose specifically: already using `ultralytics` in the pipeline; YOLO11-pose inference fits naturally into the existing `model.predict()` batch loop; avoids adding a separate inference framework
+- Why the Roboflow dataset: 32 semantically labeled keypoints; free download; used by the roboflow/sports reference implementation; compatible with YOLO keypoint format
+
+**Component B — Homography Computation**
+
+`cv2.findHomography` (already in OpenCV) takes the visible detected keypoints (source points in pixel coordinates) and their known real-world positions from the `SoccerPitchConfiguration` (destination points in meters), and returns the 3x3 homography matrix. This replaces the current `cv2.getPerspectiveTransform` call that uses four estimated points.
+
+```python
+# Conceptual replacement in view_transformer.py
+import supervision as sv
+from sports.configs.soccer import SoccerPitchConfiguration
+
+config = SoccerPitchConfiguration()
+# keypoints from YOLO11-pose output: shape (32, 3) — x, y, conf
+# filter to confident keypoints only (conf > 0.5)
+src_pts = detected_keypoints[confident_mask][:, :2]
+dst_pts = config.vertices[confident_mask]  # real-world meter coords
+H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC)
 ```
 
-### Python Heatmap Pipeline Extension
+**`findHomography` advantage over `getPerspectiveTransform`:** Accepts any number of point correspondences (not exactly 4), uses RANSAC to reject outlier keypoints, and produces a more accurate homography even when some keypoints are partially occluded.
+
+**Installation:**
+```bash
+pip install git+https://github.com/roboflow/sports.git
+```
+
+**Confidence:** MEDIUM. The Roboflow model is well-documented and actively used in the roboflow/sports reference examples. Main risk: the pre-trained model may need fine-tuning on NC State footage if the camera angle or pitch markings differ significantly from training data.
+
+---
+
+### 3. ByteTrack ID-Switch Reduction
+
+**Decision: Parameter tuning only. No new library.**
+
+The current `sv.ByteTrack()` is instantiated with defaults. Supervision 0.27 (installed) exposes these constructor parameters:
+
+| Parameter | Default | Recommended for Soccer | Effect |
+|-----------|---------|----------------------|--------|
+| `track_activation_threshold` | 0.25 | 0.3–0.4 | Higher = only confident detections start tracks; reduces ghost player IDs |
+| `lost_track_buffer` | 30 | 60–90 (at 25 fps) | Frames to hold a lost track before discarding; reduces ID switches during brief occlusions |
+| `minimum_matching_threshold` | 0.8 | 0.8–0.9 | IoU threshold for matching; higher = fewer wrong matches between nearby players |
+| `minimum_consecutive_frames` | 1 | 3–5 | Track must appear in N consecutive frames before being emitted; eliminates single-frame ghost detections |
+| `frame_rate` | 30 | Set to actual video fps | Scales `lost_track_buffer` duration correctly |
+
+**What to change:**
+```python
+# In trackers/tracker.py — replace sv.ByteTrack() with:
+self.tracker = sv.ByteTrack(
+    track_activation_threshold=0.35,
+    lost_track_buffer=75,           # ~3 seconds at 25 fps
+    minimum_matching_threshold=0.85,
+    minimum_consecutive_frames=3,
+    frame_rate=fps                  # pass actual fps from video metadata
+)
+```
+
+**Why not switch to BoT-SORT:** BoT-SORT adds camera motion compensation (useful when camera pans significantly) but requires ReID features — either a separate ReID model (more latency, more dependencies) or visual appearance embeddings (not supported out of the box in supervision's ByteTrack). For a static broadcast camera, ByteTrack with tuned parameters is sufficient. BoT-SORT is the right call only if camera motion compensation proves inadequate after tuning.
+
+**Why not the separate `roboflow/trackers` library:** It is a newer, modular re-implementation but is pre-1.0 and adds installation complexity. supervision 0.27 ByteTrack with parameter tuning has zero new dependencies.
+
+**Confidence:** HIGH. Parameters are documented in supervision GitHub issues and confirmed in multiple community discussions.
+
+---
+
+### 4. Individual Player Heatmaps
+
+**Primary (static PNG — do in v2.0):**
+
+**Decision: `mplsoccer` — already installed. No new library.**
+
+The existing `generate_heatmaps.py` already uses `mplsoccer.Pitch.bin_statistic` and `pitch.heatmap` for team-level heatmaps. Per-player heatmaps use the same API, filtered by `track_id`:
+
+```python
+# Conceptual pattern — same API as team heatmaps
+pitch = Pitch(pitch_type='custom', pitch_length=105, pitch_width=68)
+fig, ax = pitch.draw()
+player_positions = positions_df[positions_df['track_id'] == pid]
+bs = pitch.bin_statistic(player_positions['x'], player_positions['y'],
+                          statistic='count', bins=(16, 12))
+pitch.heatmap(bs, ax=ax, cmap='hot')
+fig.savefig(f'player_{pid}_heatmap.png', dpi=100, bbox_inches='tight')
+```
+
+Output: one PNG per player per clip. Naming convention: `player_{track_id}_{team}_heatmap.png`.
+
+The `positions.json` (1Hz export, already produced) provides input. No format changes needed.
+
+**Stretch goal (interactive player-toggle — defer to v2.1):**
+
+**Decision: Pre-render all per-player PNGs; use JavaScript image-swap on the static site.**
+
+Do NOT add Plotly Dash, Folium, or any Python server for the interactive stretch goal. The site is static (GitHub Pages). The correct approach for a static site:
+- Pre-render per-player PNGs in Python (same pipeline)
+- On the Astro site, embed a player selector (HTML `<select>` or button group) that swaps the displayed `<img src>` using ~10 lines of vanilla JS
+
+This gives the "interactive" experience without any server dependency. No new Python library needed. No new JS framework needed.
+
+**Confidence:** HIGH. mplsoccer 1.6.1 API is stable and this is a direct extension of existing code.
+
+---
+
+## Installation Changes
+
+The only new dependency is `roboflow/sports` (for pitch calibration):
 
 ```bash
-# In existing Python environment
-pip install mplsoccer>=1.6.1 scipy>=1.9.0
+# Add to requirements.txt
+# sports — no PyPI release; install from source
+# pip install git+https://github.com/roboflow/sports.git
 
-# matplotlib is already pulled in by mplsoccer but verify:
-pip install matplotlib>=3.6.0
+# If fine-tuning the YOLO pitch keypoint model:
+# No additional package — ultralytics already handles YOLO11-pose training
+```
+
+Updated `requirements.txt`:
+```
+ultralytics>=8.0.0
+supervision>=0.27.0          # pin to confirmed-working version
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+mplsoccer>=1.6.0
+pytest>=7.0.0
+# Install separately (no PyPI release):
+# pip install git+https://github.com/roboflow/sports.git
 ```
 
 ---
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| Astro | Plain HTML/CSS/JS (no build tool) | If the site is truly 1-2 static pages with no templating needs; but Astro's templating pays off immediately when adding 2-3 match clips with shared layout |
-| Astro | Next.js / SvelteKit | If Phase 2 backend is starting immediately; premature for a static demo milestone with 1-2 week deadline |
-| Astro | Jekyll | Only if the team already knows Jekyll; Astro builds faster, has better DX, and official GitHub Pages action is as simple |
-| Plyr | Vidstack | Vidstack is the newer option and technically the successor Plyr is merging toward; but Vidstack 1.x CDN story is less mature and its docs are more complex for simple MP4 playback use case |
-| Plyr | Video.js | Video.js is ~500 kB uncompressed; overkill for a demo with pre-processed MP4 files; no HLS/DASH needed |
-| Chart.js | D3.js | D3 only if you need bespoke custom visuals (e.g., animated player movement traces); possession % and speed bars do not need D3's power |
-| Chart.js | ECharts | ECharts is excellent but heavier (~700 kB min); Chart.js is sufficient and lighter for this scope |
-| Cloudflare R2 | Amazon S3 | S3 has egress fees; R2 has $0 egress; for a demo with no budget there is no reason to choose S3 |
-| Cloudflare R2 | YouTube unlisted | YouTube is zero setup fallback but loses player UI control and branding; R2 is preferred if demo polish matters |
-| mplsoccer | seaborn kdeplot on blank axes | Seaborn KDE on blank axes requires manually painting pitch markings; mplsoccer does this correctly in one line and the output looks professional |
-| mplsoccer | Ultralytics built-in Heatmap | Ultralytics renders onto raw video frames — wrong output type for a static site panel image |
+| Feature | Recommended | Alternative | Why Not |
+|---------|-------------|-------------|---------|
+| Pitch calibration model | YOLO11-pose + Roboflow football-field-detection dataset | SoccerNet sn-calibration (HRNetV2 backbone) | HRNetV2 is heavier, requires separate inference stack, not ultralytics-compatible; overkill for 1-2 week timeline |
+| Pitch calibration model | YOLO11-pose | Manual 4-point vertex estimation (current) | Current approach causes ~268 km/h ghost speeds; inadequate for accurate event detection |
+| Event detection | Rule-based Python | ML event classifier (action recognition model) | Requires labeled event data, training pipeline, GPU inference; F-score 0.93 from rules is sufficient for v2.0 demo |
+| Tracking stability | ByteTrack parameter tuning | Switch to BoT-SORT | BoT-SORT needs ReID model (new dependency, latency); supervision's ByteTrack API exposes enough knobs to solve the ghost-player problem |
+| Tracking stability | ByteTrack parameter tuning | Switch to `roboflow/trackers` library | Pre-1.0, no stability guarantee; supervision 0.27 ByteTrack already installed and sufficient |
+| Interactive heatmaps | JS image-swap on static site | Plotly Dash / Folium server | Site is GitHub Pages (static); adding a server invalidates the entire hosting approach; defer real interactivity to Phase 2 web app |
+| Individual player heatmaps | mplsoccer (existing) | matplotlib + scipy.stats.gaussian_kde directly | mplsoccer already installed, wraps the pitch drawing and bin_statistic correctly; no reason to bypass it |
 
 ---
 
@@ -124,60 +228,53 @@ pip install matplotlib>=3.6.0
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| Git LFS for video files | GitHub Pages explicitly does NOT serve LFS files — the file pointer text is served instead of the binary; video will not play | Cloudflare R2 public bucket or YouTube unlisted embed |
-| React / Vue for the demo site | Adds build complexity and JS bundle weight for what is essentially a read-only display page; counter to 1-2 week deadline constraint | Astro (zero-JS default) + Alpine.js for minimal interactivity |
-| Video.js | ~500 kB uncompressed; designed for HLS/DASH adaptive streaming, not simple MP4 playback; overkill | Plyr (7 kB gzipped) |
-| Jekyll | Slower builds, Ruby dependency, worse DX than Astro; the only reason to use Jekyll in 2025 is legacy familiarity | Astro with official GitHub Pages action |
-| Storing processed videos in Git without LFS | Files >50 MB trigger Git warnings; >100 MB are hard-blocked by GitHub push; videos will not land in the repo | Upload to Cloudflare R2, store only the URL in a JSON config file |
-| OpenCV `cv2.applyColorMap` for the shareable pitch heatmap | Produces a heatmap on the raw video frame aspect ratio, not a pitch diagram; output is video-overlay style, not a clean PNG for a stats panel | mplsoccer `Pitch.heatmap()` |
-| Recharts | React-only; adds a React dependency to the static site for no reason | Chart.js (framework-agnostic) |
+| SoccerNet `sn-calibration` repo | Standalone Python repo, not a pip package, requires HRNetV2 weights download, heavy setup; designed for research benchmarks not production pipelines | YOLO11-pose + Roboflow football-field-detection model (ultralytics-native) |
+| `roboflow/trackers` (separate library) | Immature (pre-1.0), adds install complexity, duplicates supervision ByteTrack which is already installed at 0.27 | supervision `sv.ByteTrack` with tuned parameters |
+| Plotly Dash / Folium for interactive heatmaps | Requires a running server — incompatible with GitHub Pages static hosting | JS `<img>` swap with pre-rendered PNGs |
+| ML-based event detection (action recognition) | Requires labeled training data for NC State clips, GPU inference at runtime, 2–4 week integration; accuracy gain over rule-based is marginal for demo scope | Rule-based possession-change event logic |
+| `cv2.getPerspectiveTransform` with 4 estimated points | Produces wildly inaccurate perspective mapping (ghost speeds); current behavior | `cv2.findHomography` with 32 YOLO-detected keypoints + RANSAC |
 
 ---
 
-## Stack Patterns by Variant
+## Stack Patterns by Condition
 
-**If demo deadline is <1 week (emergency mode):**
-- Skip Astro; use a single `index.html` with Plyr, Chart.js, and YouTube unlisted embeds
-- No build step, no CI/CD; just push HTML to `main` and enable Pages from root
-- Heatmap: run mplsoccer locally, commit PNG images directly to `assets/`
+**If the YOLO pitch keypoint model performs poorly on NC State footage (< 10 keypoints detected per frame with conf > 0.5):**
+- Fall back to semi-automated calibration: detect keypoints, display to user for manual correction, then compute homography
+- Or: fine-tune the Roboflow model on 50–100 annotated NC State frames using ultralytics YOLO11 training
 
-**If polished demo (full 1-2 weeks available):**
-- Astro with Tailwind, Plyr + R2 videos, Chart.js, GitHub Actions deploy
-- mplsoccer heatmaps generated locally, PNGs committed to repo as assets (small enough)
-- Stats JSON files committed to repo (text files, always small)
+**If tracking stability issues persist after ByteTrack tuning:**
+- Profile which frames produce ID switches; if camera motion is the root cause, add BoT-SORT (pip install from roboflow/trackers, use camera motion compensation flag)
+- If occlusion is the root cause, increase `lost_track_buffer` further (up to 5 seconds worth of frames)
 
-**If Phase 2 backend starts immediately after demo:**
-- Consider Astro with React islands instead of Alpine.js — easier migration path to Next.js/React later
-- Keep video hosting on R2 (R2 will serve Phase 2 backend just as well)
+**If per-player heatmaps produce noisy output (player tracked for < 30 seconds):**
+- Apply minimum position count threshold before rendering heatmap (e.g., skip players with fewer than 30 recorded positions)
+- Use larger bin size (`bins=(8, 6)` instead of `(16, 12)`) to smooth sparse data
 
 ---
 
 ## Version Compatibility
 
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| mplsoccer 1.6.1 | Python >=3.10 | Requires `KW_ONLY` from `dataclasses`, not available in Python 3.9 |
-| mplsoccer 1.6.1 | matplotlib >=3.6.0 | matplotlib is a direct dependency; pulled automatically by pip |
-| Chart.js 4.5.1 | chartjs-plugin-datalabels 2.2.0 | Plugin requires Chart.js 4.x; do not use plugin v3.x with Chart.js 4.x |
-| Plyr 3.8.4 | Modern browsers (Chrome, Firefox, Safari, Edge) | No IE11 support; fine for a coaching demo targeting modern browsers |
-| Astro 5.x | Node.js >=18.17.1 | Astro 5 dropped Node 16; use Node 20 LTS in GitHub Actions |
+| Package | Version | Compatible With | Notes |
+|---------|---------|----------------|-------|
+| supervision | 0.27.0.post2 | ultralytics >=8.0.0 | Currently installed; `sv.ByteTrack` `minimum_consecutive_frames` confirmed available at this version |
+| roboflow/sports | git main | supervision 0.27, ultralytics >=8.0.0, OpenCV >=4.8 | No version pinning possible (no PyPI release); pin via git commit hash in production |
+| mplsoccer | >=1.6.0 | matplotlib >=3.5, numpy >=1.21 | `bin_statistic` and `heatmap` API stable since 1.1; no breaking changes expected |
+| ultralytics | >=8.0.0 | YOLO11-pose task | YOLO11-pose requires ultralytics >=8.1.0; confirm with `pip show ultralytics` |
 
 ---
 
 ## Sources
 
-- mplsoccer PyPI — version 1.6.1, Python >=3.10 requirement — HIGH confidence: https://pypi.org/project/mplsoccer/
-- mplsoccer docs heatmap guide — `bin_statistic` + `heatmap` API — HIGH confidence: https://mplsoccer.readthedocs.io/en/latest/gallery/pitch_plots/plot_heatmap.html
-- Plyr jsDelivr — version 3.8.4 confirmed latest — MEDIUM confidence (npmjs.com 403'd, jsDelivr CDN shows 3.8.4 as current): https://cdn.jsdelivr.net/npm/plyr@3.8.3/
-- Chart.js docs — version 4.5.1 — HIGH confidence: https://www.chartjs.org/docs/latest/api/
-- GitHub Pages LFS limitation — official GitHub docs: Git LFS cannot be used with GitHub Pages — HIGH confidence: https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-git-large-file-storage
-- GitHub 100 MB file size hard limit — HIGH confidence: https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github
-- Cloudflare R2 zero-egress pricing and video serving capability — MEDIUM confidence (community posts, official docs not directly fetched): https://community.cloudflare.com/t/can-we-serve-video-with-r2/406275
-- Astro GitHub Pages deployment — official Astro docs and official GitHub action — HIGH confidence: https://docs.astro.build/en/guides/deploy/github/
-- Ultralytics heatmap guide (shows video-overlay output, not pitch diagram) — HIGH confidence: https://docs.ultralytics.com/guides/heatmaps/
-- Vite static deploy docs (relevant to Astro build) — HIGH confidence: https://vite.dev/guide/static-deploy
+- Supervision trackers docs: `supervision.roboflow.com/trackers/` — ByteTrack parameter names and defaults confirmed
+- GitHub issue `roboflow/supervision#1044` — `minimum_consecutive_frames` parameter confirmed, community validation of parameter tuning for ID switch reduction
+- GitHub discussion `roboflow/supervision#1001` — community-documented parameter ranges for sport tracking scenarios
+- Roboflow blog "Camera Calibration in Sports with Keypoints" (`blog.roboflow.com/camera-calibration-sports-computer-vision/`) — YOLO keypoint + findHomography pattern, 32-keypoint dataset reference (MEDIUM confidence — blog, not official docs)
+- Roboflow Universe `football-field-detection-f07vi` — 32-keypoint soccer pitch model, actively maintained as of 2025
+- `github.com/roboflow/sports` — `SoccerPitchConfiguration`, soccer pitch annotation utilities; install via git (no PyPI)
+- Springer article "Automatic event detection in football using tracking data" (2022) — rule-based F-scores: passes 0.93, shots 0.95 (MEDIUM confidence — academic, not implementation docs)
+- mplsoccer docs `mplsoccer.readthedocs.io/en/latest/gallery/pitch_plots/plot_heatmap.html` — `bin_statistic` + `heatmap` API confirmed for per-player use (HIGH confidence — official docs)
 
 ---
 
-*Stack research for: Korner Flags demo site + heatmap pipeline extension*
-*Researched: 2026-03-16*
+*Stack research for: Korner Flags v2.0 — event detection, pitch calibration, tracking stability, individual heatmaps*
+*Researched: 2026-03-24*

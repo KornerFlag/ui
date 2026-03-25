@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** Korner Flags — Soccer Video Analysis Demo Site
-**Domain:** Static sports video analysis demo site (GitHub Pages) with Python heatmap pipeline extension
-**Researched:** 2026-03-16
-**Confidence:** HIGH
+**Project:** Korner Flags — Soccer Video Analysis (v2.0 Feature Additions)
+**Domain:** Sports computer vision — batch video analysis pipeline extensions
+**Researched:** 2026-03-24
+**Confidence:** MEDIUM overall (HIGH for stack and architecture; MEDIUM for event detection accuracy)
 
 ## Executive Summary
 
-Korner Flags is a coaching pitch tool, not a product launch — the goal is to make 2-3 pre-processed NC State clips look credible and polished for D1 coaching staff who already use Hudl and Wyscout daily. The recommended approach is a static site on GitHub Pages (Astro 5.x + Tailwind + Plyr + Chart.js), with annotated MP4 videos hosted on GitHub Releases (bypassing the 100 MB per-file hard limit) and JSON data files committed directly to the repo. A companion Python heatmap export script using mplsoccer generates per-team pitch heatmap PNGs from the existing perspective-transformed position data. The entire stack is deployable in 1-2 weeks with no backend infrastructure.
+Korner Flags v2.0 is a targeted upgrade of a complete and validated v1.0 pipeline. The four feature additions — pitch keypoint calibration, tracking stability improvements, event detection (pass/shot/assist), and individual player heatmaps — are well-understood problems with established open-source solutions. None require new ML training pipelines or server infrastructure. All are achievable through parameter tuning, two new Python modules, one new model weight file, and direct extensions of existing code. The only new package dependency is `roboflow/sports` (git install, no PyPI release), which provides canonical pitch keypoint real-world coordinates. Every other addition reuses the existing `ultralytics`, `supervision`, `opencv`, and `mplsoccer` stack.
 
-The single most important technical risk is that the existing codebase has two confirmed bugs — `position` vs `position_adjusted` in the view transformer and `old_feature` vs `old_features` in the camera movement estimator — that silently produce incorrect speed and distance values on any footage with camera pan. These bugs must be fixed before processing any demo footage or the stats shown to D1 coaches will be wrong in an obvious, credibility-destroying way. A second structural risk is YOLO model domain shift: the model was trained on specific broadcast footage and may perform poorly on NC State camera angles; this must be validated on a 60-second test clip before committing to full processing.
+The single most important architectural decision in v2.0 is build order. Tracking stability and pitch calibration are not just features — they are foundational data quality fixes. Ghost player IDs (ByteTrack ID switches) corrupt heatmaps, event logs, and assist attribution. Phantom 268 km/h speeds from estimated perspective vertices destroy coaching credibility. Both must be resolved before event detection is built on top of them. The research is unambiguous on this: fix the data quality first, then detect events on clean data. Any feature built on noisy input will require rework after the foundation is fixed.
 
-The recommended build order prioritizes risk reduction: fix known pipeline bugs first, validate YOLO detection on NC State footage second, then build the static site scaffold and video pipeline, and layer in data visualizations last. This order ensures that at every step there is a working, demonstrable artifact, and that the two highest-risk unknowns (data quality and detection quality) are resolved before front-end effort is committed.
+The primary risks are (1) the pretrained pitch keypoint model may underperform on NC State footage and require fine-tuning on 50-100 annotated frames, and (2) velocity thresholds for pass/shot detection are not portable across clips until calibrated coordinates are in place. Both are manageable: the calibration module has a documented graceful fallback path (returns `None`, pipeline continues with estimated vertices), and threshold portability is resolved by completing calibration before finalizing event logic. A coaching demo that shows accurate sprint speeds and stable player labels is more credible than one with event counts derived from noisy tracks.
 
 ---
 
@@ -19,179 +19,154 @@ The recommended build order prioritizes risk reduction: fix known pipeline bugs 
 
 ### Recommended Stack
 
-The demo site requires no backend and no JavaScript framework. Astro 5.x generates a zero-JS static site with Tailwind for styling, deployed automatically to GitHub Pages via the official `withastro/action@v3` GitHub Action. Video playback uses Plyr 3.8.4 (7 kB gzipped) against MP4 files hosted as GitHub Release assets. Chart.js 4.5.1 via CDN handles possession and speed/distance charts. Alpine.js 3.14.x covers any lightweight interactivity (tab switching, clip selection) without adding React or Vue.
-
-For the Python pipeline extension, mplsoccer 1.6.1 generates pitch heatmap PNGs from perspective-transformed XY positions. It requires Python >=3.10 and matplotlib >=3.6.0 (already a transitive dependency). Git LFS is explicitly unsupported on GitHub Pages — video files must never be committed to the repo tree.
+The v1.0 stack is extended, not replaced. All four v2.0 features are achievable without replacing any existing library.
 
 **Core technologies:**
-- Astro 5.x: static site generator — zero-JS default, official GitHub Pages action, templating scales to 2-3 match pages cleanly
-- Plyr 3.8.4: video player — 7 kB gzipped, accessible, plays H.264 MP4 directly
-- Chart.js 4.5.1: stats charts — framework-agnostic, sufficient for possession/speed/distance visualizations
-- Tailwind CSS 3.x: styling — utility-first, integrates into Astro with zero config
-- Alpine.js 3.14.x: UI interactivity — lightweight reactive state without React overhead
-- GitHub Releases: video hosting — 2 GB per asset, permanent CDN URLs, no egress fees
-- mplsoccer 1.6.1: heatmap generation — purpose-built pitch rendering, `bin_statistic` + `heatmap` in two lines
-- Cloudflare R2: video hosting alternative — zero egress fees, 10 GB free tier (preferred if demo polish matters more than zero-config setup)
+- `ultralytics` (>=8.1.0 required for YOLO11-pose): existing player/ball detection unchanged; adds a second model weight (`pitch_keypoints.pt`) for pitch keypoint detection — ultralytics-native inference, no new framework
+- `supervision 0.27.0.post2`: ByteTrack already installed; tracking stability via three constructor parameter changes (`track_activation_threshold=0.35`, `lost_track_buffer=75`, `minimum_consecutive_frames=3`) — zero new dependencies
+- `opencv-python-headless`: `cv2.findHomography` (RANSAC, N>4 point pairs) replaces `cv2.getPerspectiveTransform` (exactly 4 points, no outlier rejection) for calibration — already imported, no new import
+- `mplsoccer>=1.6.0`: per-player heatmaps use identical `Pitch.bin_statistic` + `Pitch.heatmap` API as existing team heatmaps; the new code is ~20 lines filtering by `player_id`
+- `roboflow/sports` (git install only): provides `SoccerPitchConfiguration` with 32 canonical pitch keypoint real-world coordinates as the reference frame for homography; no PyPI release, pin by commit hash in production
+- Event detection: pure Python rule-based state machine over existing `tracks{}` dict — no library, no ML model, ~150-200 LOC; academic benchmarks confirm rule-based achieves F-score 0.93 for passes, 0.95 for shots on tracking data
+
+**Critical version check required:** Confirm `ultralytics >= 8.1.0` with `pip show ultralytics` before starting the calibration phase. YOLO11-pose requires 8.1.0; the v1.0 pipeline specified `>=8.0.0`.
 
 ### Expected Features
 
-Research confirmed that D1 coaching staff use Hudl and Wyscout daily and will compare this demo against those tools. The pitch differentiator is that the pipeline requires only a video file — no GPS hardware, no manual tagging, no expensive subscriptions — and this must be stated explicitly on the demo site.
+**Must have (v2.0 table stakes):**
+- Pass count per team — every commercial analytics tool (Wyscout, StatsBomb) shows pass counts first; absence makes the "event detection" milestone claim hollow
+- Shot count per team with on/off target split — "how many shots, how many on target?" is the first attacking question coaches ask
+- Individual player heatmaps (static PNG) — immediate follow-up to team heatmaps already on the demo site: "can I see just where Player 7 was?"
+- Accurate real-world coordinates (calibrated) — ghost speeds (~268 km/h) actively destroy trust in all spatial stats; coaches with Hudl/GPS experience will notice immediately
+- Tracking stability — invisible when working, immediately jarring when broken; prerequisite for all event accuracy
 
-**Must have (table stakes):**
-- Annotated video player (H.264 MP4) — the core artifact; AVI-to-MP4 conversion is a hard blocker
-- Multi-clip gallery with 2-3 NC State clips — single clip reads as a one-trick demo reel
-- Possession % display (visual, not just a number) — the first stat coaches ask for
-- Per-player speed and distance table — physical load metrics are expected by every D1 program
-- Static per-team heatmap PNG — coaches recognize this format instantly; most visually impressive output
-- Match metadata (teams, date, context) — anchors the demo in NC State reality
-- "How It Works" section (4-step visual, after the video) — builds credibility for the pitch
+**Should have (v2.0 competitive additions):**
+- Assist attribution with player ID — "Player 7 had 2 assists" is immediately actionable in a team session
+- Site updates showing events table and per-player heatmap grid — connects pipeline output to coaching UI
+- BoT-SORT tracker swap if NC State footage shows significant camera pan causing ID switches after ByteTrack tuning
 
-**Should have (competitive):**
-- Possession timeline (segmented bar over time) — upgrades possession % to show ebb and flow
-- Per-player individual heatmaps — useful if coaches ask "where was player 7?"
-- Speed timeline chart — shows athletic intensity over match (verify per-frame data export first)
+**Defer to v2.x:**
+- Shot map visualization (dots on pitch minimap at shot locations)
+- Event timestamps with video seek links
+- Interactive player-toggle heatmaps (JS image-swap on static site with pre-rendered PNGs)
+- Player name/jersey number mapping (requires coaching staff to provide roster data)
 
-**Defer (v2+):**
-- Video upload and cloud processing — requires GPU backend, auth, storage infrastructure
-- Pass network visualization — blocked on pass detection which is not in the pipeline
-- Interactive heatmaps — worth building once a backend exists
-- Player comparison view — scouting feature, relevant post-validation
-- Coach accounts and saved sessions — requires auth backend; eliminates GitHub Pages entirely
+**Defer to v3+:**
+- ML-based action spotting (T-DEED, SoccerNet architecture) — requires labeled training data that does not exist
+- xG model — needs large labeled shot dataset
+- ReID embedding for tracking — defer until BoT-SORT proven insufficient
+- Offside detection, foul/card detection
 
 ### Architecture Approach
 
-The architecture separates offline processing (Python pipeline on local machine) from the static demo site (GitHub Pages). JSON data files (stats.json ~10 KB, positions.json ~200 KB after 1 Hz downsampling) commit to the repo. Annotated MP4 files upload as GitHub Release assets and are referenced by URL in a `manifest.json` registry. The browser reads `manifest.json` at page load, renders a match gallery, and on match selection fetches stats/position JSON and sets the video `src` to the Release URL. No build step, no backend, no framework — vanilla HTML + JS is appropriate for this scope and deadline.
+The v2.0 architecture adds two new modules (`pitch_calibrator/` and `event_detector/`), tunes one existing module (`trackers/tracker.py` ByteTrack params), extends one script (`generate_heatmaps.py --per-player`), and adds two Astro components to the site. The existing staged track enrichment pattern — each module reads keys written by prior modules into `tracks{}` — is preserved exactly. EventDetector is the only genuinely new addition to the main pipeline sequence; it runs after all enrichment is complete and outputs a separate `events[]` list rather than writing into `tracks{}`. The stats JSON schema expands additively with no breaking changes to existing fields.
 
 **Major components:**
-1. Python CLI pipeline (existing) — YOLO detection, ByteTrack, annotation, stats JSON output
-2. `export_positions.py` (new, ~50 lines) — extracts per-player XY positions from view transformer output into `positions.json` at 1 Hz
-3. FFmpeg AVI-to-MP4 conversion step — mandatory pre-upload; must include `-movflags +faststart`
-4. `manifest.json` — master registry of all matches; single source of truth for video URLs, stats URLs, position URLs
-5. `index.html` + gallery JS — match browser rendered from `manifest.json`
-6. `match.html` + player/stats/heatmap JS — single-match view with Plyr video player, Chart.js stats, D3 heatmap on pitch SVG
-7. GitHub Actions workflow — automatic build and deploy via `withastro/action@v3`
+1. `PitchCalibrator` (NEW module) — YOLO11-pose pitch keypoint model on first 3-5 frames; returns calibrated `pixel_vertices` (np.ndarray) or `None` on failure; called before ViewTransformer; fallback preserves existing behavior
+2. `EventDetector` (NEW module) — deterministic state machine over fully-enriched `tracks{}` and `team_ball_control[]`; outputs `events[]` list; called after PlayerBallAssigner; ~150-200 LOC
+3. ByteTrack parameter tuning — three constructor arguments in `Tracker.__init__`; `draw_events()` annotation method added
+4. `generate_heatmaps.py --per-player` — per-player PNG generation with minimum-sample filter (≥30 samples at 1Hz) before rendering
+5. `EventsTable.astro` + `PlayerHeatmapGrid.astro` (NEW site components) — reads expanded `stats.json`; no `manifest.json` schema changes needed
+
+**Key integration rule:** Per-player heatmap URLs live in `stats.players[id].heatmap_url`, not in `manifest.json`. Player IDs are not stable across clips; manifest stays clip-level metadata only.
 
 ### Critical Pitfalls
 
-1. **Git LFS pointer files served by GitHub Pages** — GitHub Pages cannot resolve LFS pointers; visitors see a 130-byte text file instead of a video. Never use Git LFS for video files. Host all videos as GitHub Release assets or on Cloudflare R2.
+1. **Pass detection fires on interpolated ball positions (V2-1)** — The pipeline linearly interpolates missing ball positions before possession evaluation. Velocity triggers at the seam between interpolated and real tracking produce phantom passes during every ball occlusion. Prevention: tag each ball track entry with `interpolated=True` during `interpolate_ball_positions`; pass/shot velocity calculations skip any span that includes an interpolated frame. Without this, pass counts are nonsense — implement before any event logic.
 
-2. **AVI output does not play in any browser** — The pipeline outputs `.avi` with XVID codec by default. No major browser supports XVID in a `<video>` element. Re-encode every clip with `ffmpeg -i annotated.avi -c:v libx264 -crf 23 -preset fast -movflags +faststart output.mp4` before upload. This step is mandatory; no workaround exists.
+2. **Pitch keypoint calibration fails silently and corrupts all spatial stats (V2-5)** — `cv2.findHomography` does not validate that the result is geometrically reasonable. A single misidentified keypoint produces a plausible-looking but wrong homography, yielding phantom speeds identical to the current 268 km/h problem with no error raised. Prevention: after computing homography, validate by mapping corner points back through the transform (check within ±2m of expected real-world coordinates); reject and fall back to estimated vertices if validation fails; log a warning. Gate this check before the calibrated transform is used for any downstream calculation.
 
-3. **Two confirmed pipeline bugs produce wrong speed/distance stats** — `view_transformer.py` line 54 reads `position` instead of `position_adjusted` (discarding camera pan corrections), and `camera_movement_estimator.py` line 65 assigns `old_feature` instead of `old_features` (breaking feature point refresh). Both bugs are silent — no error, just wrong numbers. Showing inflated speed stats to D1 coaching staff who know what 32 km/h looks like destroys credibility instantly. Fix both before processing any demo footage.
+3. **ByteTrack ID switches corrupt every downstream feature (V2-4, V2-7, V2-8, V2-9)** — Ghost IDs produce: wrong team assignments cached on bad first frames, fragmented per-player heatmaps (confetti), missing or wrong assist attribution, and inflated pass counts from possession-chain breaks. Prevention: tune ByteTrack parameters first; apply minimum-frame filter (≥1 second / ~25 frames) to exclude ghost player IDs from stats, heatmaps, and event detection. Measure unique ID count before and after — target ≤35 unique IDs per 90-second clip with 22 players.
 
-4. **Team color assignment fails when frame 0 lacks both teams** — KMeans trains on only the first frame. If the clip opens with a close-up, scoreboard, or partial view, color assignment is garbage for the entire clip and silently wrong. Visually audit the first 30 seconds of every annotated output clip before including it in the demo.
+4. **Velocity threshold for pass/shot detection is not portable across clips (V2-2)** — Any absolute m/s threshold tuned on one clip will over- or under-fire on another until pitch calibration is complete, because pixel-to-metre conversion currently varies by zoom and camera angle. Prevention: do not finalize absolute velocity thresholds until calibration phase is done; use clip-relative percentile thresholds as a transitional measure; re-validate thresholds on at least two different NC State clips after calibration ships.
 
-5. **YOLO domain shift on NC State camera angles** — The model was trained on specific broadcast footage; sideline or press-box angles at NC State may produce significantly degraded detection. Test on a 60-second clip before committing to full processing. If detection rate is poor, fine-tune on 20-50 labeled NC State frames via Roboflow.
+5. **Shot detection conflates clearances, goalkeeper punts, and long balls with shots on goal (V2-3)** — Velocity spike alone is insufficient to identify a shot. D1 games average ~12 shots per 90 minutes — any shot count exceeding 12 per 90 seconds indicates false positives. Prevention: shot detection requires three conditions simultaneously: (a) origin in attacking half, (b) ball trajectory within ±30 degrees of goal-center heading, (c) possession attributed to attacking team. Goal mouth coordinates require calibration; calibration phase is a hard prerequisite for reliable shot detection.
 
 ---
 
 ## Implications for Roadmap
 
-Based on combined research, the project has a clear dependency chain: fix known bugs → validate detection quality → build site scaffold and video pipeline → add data visualizations → polish and UX. This order ensures every phase has a shippable artifact and that expensive front-end work is not committed before the pipeline output quality is confirmed.
+Based on combined research, the build order is dictated by data quality dependencies. Features built on noisy data must be reworked after the data is fixed. The five-phase structure below is directly derived from the build order specified in ARCHITECTURE.md and is consistent with pitfall prevention requirements across all four research files.
 
-### Phase 1: Pipeline Bug Fixes and Validation
+### Phase 1: Tracking Stability
 
-**Rationale:** Two confirmed bugs produce wrong speed/distance stats, and YOLO domain shift is an unknown that could invalidate the entire demo. Both must be resolved before any other work, because everything downstream depends on correct pipeline output. The bugs take under an hour to fix; the detection validation takes a day at most. This is the cheapest risk reduction available.
+**Rationale:** ID switches are the root cause of corruption in every downstream v2.0 feature — events, heatmaps, assist attribution. This is the lowest-effort, highest-leverage fix: three ByteTrack constructor parameter changes and a minimum-frame ghost filter in `generate_stats()`. Must come first because every other phase depends on clean track IDs.
 
-**Delivers:** Correct pipeline output on NC State footage; confidence that the demo stats are defensible to D1 coaching staff
+**Delivers:** Stable player IDs across clips; ≤35 unique IDs per 90-second clip; ghost player entries removed from stats JSON and positions.json; accurate speed/distance accumulation per physical player; team assignment corruption reduced.
 
-**Addresses:** Speed/distance accuracy, team color assignment, YOLO generalization
+**Addresses:** Table stakes: tracking stability (prerequisite for all event features). Pitfalls V2-4, V2-7, V2-8, V2-9.
 
-**Avoids:** Pitfalls 4 (wrong speed stats), 5 (team color failure), 6 (YOLO domain shift)
+**Avoids:** Building event detection on fragmented tracks, which would require full rework after this fix.
 
-**Research flag:** Standard — the two bug fixes are documented precisely in PITFALLS.md. Detection validation may require one round of Roboflow fine-tuning if YOLO fails; flag for deeper research only if detection quality is poor.
-
----
-
-### Phase 2: Data Export and Video Processing
-
-**Rationale:** The site cannot be built without the data files it displays. AVI-to-MP4 conversion and position data export are pre-conditions for all front-end work. This phase also forces the asset strategy decision (GitHub Releases vs. Cloudflare R2) before any video is committed.
-
-**Delivers:** MP4 clips ready for browser playback; `stats.json` confirmed stable; `positions.json` generated and downsampled to 1 Hz; video assets uploaded to GitHub Releases; `manifest.json` populated with real URLs
-
-**Uses:** FFmpeg (AVI-to-MP4 with faststart), mplsoccer (heatmap PNG generation), `export_positions.py` (new pipeline script)
-
-**Avoids:** Pitfalls 1 (LFS trap), 2 (AVI incompatibility), 3 (repo size limit)
-
-**Research flag:** Standard — GitHub Releases upload process is well-documented. mplsoccer heatmap generation has official docs with working code examples. The only uncertainty is per-frame speed data format; check whether the current stats JSON includes per-frame speed or only aggregates before committing to a speed timeline chart.
+**Research flag:** Standard patterns — no additional research needed. ByteTrack parameter values are documented in supervision GitHub discussions and confirmed in soccer tracking literature. Skip `gsd:research-phase`.
 
 ---
 
-### Phase 3: Static Site Scaffold and Video Playback
+### Phase 2: Pitch Keypoint Calibration
 
-**Rationale:** Get a deployed, working site with real video playing before adding any data visualization. This validates the GitHub Pages deployment pipeline, confirms Plyr works with Release asset URLs, and produces a demo-ready artifact even if subsequent phases slip.
+**Rationale:** Ghost speeds (~268 km/h) from estimated perspective vertices destroy coaching credibility. Calibration also provides goal-mouth coordinates required for accurate shot detection direction filtering. Must complete before event detection so that all spatial statistics and event coordinates are in real-world metres. Soft dependency on Phase 1 (cleaner tracks improve which keypoints are selected as reliable).
 
-**Delivers:** Deployed GitHub Pages site; `index.html` match gallery; `match.html` with working Plyr video player; GitHub Actions CI/CD; NC State match metadata displayed
+**Delivers:** New `pitch_calibrator/` module; `pitch_keypoints.pt` model weight in `models/`; `--calibrate` CLI flag; all `position_transformed` values in real-world metres; speeds in believable 25-35 km/h range for fast players; validated fallback path (logs warning, continues with estimated vertices on failure).
 
-**Uses:** Astro 5.x, Tailwind CSS 3.x, Plyr 3.8.4, `withastro/action@v3`, `manifest.json` pattern
+**Addresses:** Table stakes: accurate real-world coordinates. Pitfalls V2-5, V2-6.
 
-**Implements:** Match index page, match viewer page, manifest-driven gallery pattern
+**Uses:** `ultralytics` YOLO11-pose task; `roboflow/sports` `SoccerPitchConfiguration`; `cv2.findHomography` with RANSAC.
 
-**Avoids:** Pitfall 7 (video shown first, not technical metrics)
+**Avoids:** Finalizing velocity thresholds for event detection before the coordinate system is reliable.
 
-**Research flag:** Standard — Astro + GitHub Pages is a well-documented pattern with an official action. No novel integration required.
-
----
-
-### Phase 4: Stats Visualizations
-
-**Rationale:** With video playing and the site deployed, add the possession and speed/distance panels that contextualise what coaches are watching. These are table stakes for the demo and require the stable `stats.json` schema confirmed in Phase 2.
-
-**Delivers:** Possession % donut/bar chart; team possession display with team colors; per-player speed and distance table; match stats panel displayed beside the video player
-
-**Uses:** Chart.js 4.5.1 (with chartjs-plugin-datalabels 2.2.0 for possession chart), Alpine.js 3.14.x for tab state
-
-**Implements:** `stats.js` module reading `stats.json`, Chart.js chart instances
-
-**Research flag:** Standard — Chart.js possession and stats patterns are well-documented with no novel integration.
+**Research flag:** Needs `gsd:research-phase` during planning. The pretrained Roboflow model (mAP 0.99 on training data) may underperform on NC State footage with different lighting, camera angles, or pitch marking visibility. Fine-tuning strategy and fallback path need to be scoped before committing to implementation. This is the single highest-uncertainty item in v2.0.
 
 ---
 
-### Phase 5: Heatmap Visualizations
+### Phase 3: Individual Player Heatmaps
 
-**Rationale:** The heatmap is the most visually impressive output and the strongest differentiator from Hudl (which requires manual tagging for equivalent output). It requires `positions.json` from Phase 2 and adds D3 rendering on top of the working site from Phase 3.
+**Rationale:** Lowest-effort, highest-coaching-utility feature in v2.0. `positions.json` already exports per-player coordinates at 1Hz from v1.0 — the only new work is filtering by `player_id` and calling the existing mplsoccer API. Can be developed in parallel with Phase 2 (calibrated coordinates improve positional accuracy but are not required for heatmaps to function). Hard dependency on Phase 1 ghost filter to avoid confetti heatmaps.
 
-**Delivers:** Static per-team heatmap PNG (generated by mplsoccer, embedded as `<img>`); interactive browser-side heatmap using D3 + d3-soccer on position JSON; team toggle (team 1 / team 2 / combined)
+**Delivers:** `generate_heatmaps.py --per-player` flag; per-player PNG files (`player_{id}_{team}_heatmap.png`) for players with ≥30 position samples (≥60 seconds for demo display); `heatmap_url` field added to each player entry in `_stats.json`; ghost player heatmaps filtered out.
 
-**Uses:** mplsoccer 1.6.1 + scipy (offline PNG generation); D3.js + d3-soccer (browser-side KDE heatmap from positions.json)
+**Addresses:** Table stakes: individual player heatmaps. Pitfalls V2-8, V2-10.
 
-**Implements:** `heatmap.js` module, D3 contourDensity on pitch SVG
+**Avoids:** Generating heatmaps for ghost player IDs (Phase 1 filter prevents this); Gaussian sigma scale issue addressed by expressing smoothing in metres, not bin counts.
 
-**Research flag:** May need deeper research on d3-soccer API and D3 contourDensity integration — these are medium-complexity integrations with less beginner documentation than Chart.js. The mplsoccer offline PNG is standard and well-documented; implement that first as a fallback.
+**Research flag:** Standard patterns — mplsoccer API confirmed in official docs; direct extension of existing team heatmap code. Skip `gsd:research-phase`.
 
 ---
 
-### Phase 6: Polish and Demo Readiness
+### Phase 4: Event Detection (Pass / Shot / Assist)
 
-**Rationale:** The demo is a coaching pitch. Credibility comes from how the site feels as much as what it shows. This phase focuses on UX, plain-English stat labels, loading states, cross-browser testing, and the "How It Works" explainer.
+**Rationale:** Hard dependency on Phases 1 and 2. Building event detection before tracking stability and calibration are solid produces unreliable events requiring full rework. New `event_detector/` module (~150-200 LOC rule-based state machine) running after all track enrichment. Assist detection is the last sub-feature — it is pure composition of pass + shot detection and cannot be built until those exist.
 
-**Delivers:** All stats labeled with plain-English descriptions (no variable names); "How It Works" 4-step visual; thumbnails for match gallery cards; basic responsive layout; cross-browser video playback verified (Chrome, Firefox, Safari); "Looks Done But Isn't" checklist completed
+**Delivers:** New `event_detector/` module; `events[]` array in `_stats.json` with per-event `frame_num`, `time_seconds`, `type`, `player_id`, `team`; per-player pass/shot/assist counts in `stats.players`; `draw_events()` method in `Tracker` for in-video event labels; interpolated-frame tagging to prevent false events.
 
-**Avoids:** Pitfall 7 (technical metrics shown to coaches); browser compatibility failures
+**Addresses:** Table stakes: pass count per team, shot count with on/off target, assist attribution. Pitfalls V2-1, V2-2, V2-3, V2-4, V2-9, V2-11, V2-12.
 
-**Research flag:** Standard — UX and content decisions; no technical research needed.
+**Key implementation guard:** Interpolated ball frame tagging (Pitfall V2-1) and camera cut detection (Pitfall V2-11) must be implemented at the start of this phase, before any event logic is written. All velocity thresholds must be validated on at least two different NC State clips before marking the phase complete.
+
+**Research flag:** No `gsd:research-phase` needed for event logic itself (rule-based approach is well-documented in literature). However, build in a threshold-tuning checkpoint after initial implementation — validate pass/shot counts against manual inspection of both NC State clips before proceeding to site integration.
+
+---
+
+### Phase 5: Site Updates
+
+**Rationale:** Always last — depends on the finalized output file formats from all pipeline phases. `EventsTable.astro` and `PlayerHeatmapGrid.astro` are additive Astro components that read from the expanded `_stats.json` schema. No `manifest.json` changes required. `ComingSoonCards.astro` is removed or repurposed since those features are now real.
+
+**Delivers:** `EventsTable.astro` component rendering `stats.events[]`; `PlayerHeatmapGrid.astro` rendering per-player heatmap URLs from `stats.players`; `[slug].astro` updated to import both components; `ComingSoonCards.astro` replaced.
+
+**Addresses:** Site display of all v2.0 features to coaching audience.
+
+**Avoids:** Adding server-side dependencies (Plotly Dash, Folium) — site is GitHub Pages (static); interactive heatmap toggle deferred to v2.x as a JS image-swap with pre-rendered PNGs (no server needed).
+
+**Research flag:** Standard patterns — Astro component composition is well-documented; reads data from existing JSON import pattern already in `[slug].astro`. Skip `gsd:research-phase`.
 
 ---
 
 ### Phase Ordering Rationale
 
-- **Bug fixes before everything:** Two silent bugs produce demonstrably wrong stats. Every hour of front-end work built on wrong output is wasted effort.
-- **Data export before site:** The site is a display layer for the pipeline output. Without confirmed stable data files, front-end development is speculative.
-- **Video playback before stats:** A working video demo is the minimum viable pitch. Stats and heatmaps amplify it; they are not prerequisites.
-- **Stats before heatmaps:** Stats are lower complexity and higher table-stakes priority. Heatmaps are the differentiator but involve more novel integration (D3 + d3-soccer).
-- **Polish last:** Polish phases should never block working features. A working-but-rough demo ships; a polished-but-incomplete demo does not.
-
-### Research Flags
-
-Phases likely needing deeper research during planning:
-- **Phase 1 (Detection validation):** If YOLO detection quality on NC State footage is poor, Roboflow fine-tuning workflow needs research — labeling strategy, training configuration, version pinning.
-- **Phase 5 (Heatmap):** D3-soccer library API and d3.contourDensity integration with pitch SVG coordinates has less beginner documentation. Allocate time for implementation research or use the mplsoccer static PNG as the primary deliverable with browser-side heatmap as a stretch goal.
-
-Phases with standard patterns (skip research-phase):
-- **Phase 2 (Data export):** mplsoccer and FFmpeg both have comprehensive official documentation.
-- **Phase 3 (Site scaffold):** Astro + GitHub Pages is the most-documented static site deployment pattern in 2025.
-- **Phase 4 (Stats charts):** Chart.js possession and bar chart patterns are fully documented with working examples.
-- **Phase 6 (Polish):** UX decisions; no technical unknowns.
+- **Phases 1-2 before 3-4:** Data quality (track stability + calibration) must precede features that consume that data. This is the primary dependency chain identified across all four research files independently.
+- **Phase 3 parallel-capable with Phase 2:** Individual heatmaps do not depend on calibration (they degrade gracefully without it). Can be developed concurrently with Phase 2 to compress the total timeline.
+- **Assist detection is last within Phase 4:** It is derived entirely from pass + shot detection with no unique logic; it cannot be built before the events it depends on exist.
+- **Phase 5 after all pipeline phases:** Site depends on the finalized `_stats.json` schema; building it before the schema is stable causes rework.
+- **BoT-SORT optional upgrade within Phase 1:** If NC State footage shows significant camera pan causing ID switches after ByteTrack tuning, swap to `sv.BoTSORTTracker` (supervision-native, adds Camera Motion Compensation). This is a within-Phase-1 decision measured by unique ID count diagnostic.
 
 ---
 
@@ -199,19 +174,20 @@ Phases with standard patterns (skip research-phase):
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All core libraries verified via official docs and CDN; GitHub Pages and Releases constraints verified against official GitHub docs |
-| Features | MEDIUM-HIGH | Competitor analysis confirmed across Hudl, Wyscout, Metrica Sports; coaching workflow confirmed via NCAA and performance analyst sources; some features (speed timeline) have a data format dependency to verify |
-| Architecture | HIGH | GitHub Pages limits verified from official docs; GitHub Releases video embedding pattern verified from multiple community sources; AVI/MP4 codec support verified from MDN/caniuse |
-| Pitfalls | HIGH | Pipeline bugs confirmed in first-party CONCERNS.md audit; GitHub LFS limitation confirmed from official GitHub docs and community issues; AVI codec failure confirmed from MDN; YOLO domain shift from peer-reviewed papers |
+| Stack | HIGH | All libraries confirmed via official docs and supervision GitHub issues; `roboflow/sports` API confirmed via repo inspection; YOLO11-pose version requirement needs one `pip show` check |
+| Features | MEDIUM | Table stakes and prioritization grounded in competitive analysis (Wyscout, Trace, tryolabs) and coaching UX expectations; event accuracy figures from peer-reviewed literature but depend heavily on tracking quality which varies by footage |
+| Architecture | HIGH | Build order and module boundaries derived from direct codebase analysis and peer-reviewed sports CV architecture literature; module separation decisions (EventDetector as its own module, calibration fallback design) are well-justified |
+| Pitfalls | HIGH | 10 of 12 v2.0 pitfalls verified against specific codebase code paths (first-party, HIGH confidence); external sources are peer-reviewed or official repo issues |
 
-**Overall confidence:** HIGH
+**Overall confidence:** MEDIUM-HIGH
 
 ### Gaps to Address
 
-- **Per-frame speed data format:** The current `stats.json` likely contains only aggregate speed stats, not per-frame or per-window data. A speed timeline chart requires per-frame export. Verify the existing JSON schema before committing to this feature; if not present, add a pipeline output tweak in Phase 2.
-- **YOLO detection quality on NC State footage:** Unknown until tested. This is the largest single risk. If detection quality is poor (less than 80% of visible players detected), the path is fine-tuning on NC State frames — add 1-2 days if needed.
-- **Perspective transform calibration accuracy:** The `view_transformer.py` estimates pitch vertices proportionally rather than from calibrated keypoints. Speed/distance values are approximate. Add a visible disclaimer ("estimates are approximate; calibrated field registration planned for v2") on the demo site to pre-empt coaching staff questions.
-- **mplsoccer vs D3 heatmap decision:** Both approaches are researched. The recommendation is to generate static PNGs with mplsoccer (fast, professional quality, zero browser complexity) and add the browser-side D3 heatmap as a stretch goal in Phase 5. If time pressure hits, drop the D3 interactive heatmap and ship only the static PNG.
+- **YOLO11-pose version requirement:** Confirm `pip show ultralytics` returns `>=8.1.0` before starting Phase 2. If `8.0.x`, upgrade and test for regressions in player/ball detection before proceeding.
+- **Pitch keypoint model on NC State footage (highest uncertainty):** The pretrained Roboflow model reports mAP 0.99 on its training set. NC State stadium lighting, press-box camera angle, and pitch marking condition are untested. Budget time for 50-100 frame annotation and fine-tuning if validation shows fewer than 10 confident keypoints detected per frame. Define the validation gate before Phase 2 planning.
+- **ByteTrack parameter tuning validation:** Recommended parameter values are from community findings. Must be validated empirically on the two existing NC State clips by counting unique track IDs before and after tuning. If ≤35 unique IDs per 90-second clip is not achieved, escalate to BoT-SORT.
+- **Possession smoothing / pass detection independence (Pitfall V2-12):** The existing 15-frame possession smoothing threshold and raw ball-velocity pass detection will disagree on quick short passes. Research recommends treating them as independent systems and documenting that in the stats JSON explicitly rather than coupling the logic. This design choice needs to be made explicit at the start of Phase 4.
+- **Coordinate system scope per clip (Pitfall V2-6):** Each clip's coordinate space is local to its camera angle. Multi-clip heatmap merging is not feasible in v2.0. This scope limitation should be documented on the demo site to avoid coaching confusion when comparing clips from different camera positions.
 
 ---
 
@@ -219,33 +195,31 @@ Phases with standard patterns (skip research-phase):
 
 ### Primary (HIGH confidence)
 
-- GitHub Pages official limits: https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits
-- GitHub large files official docs: https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github
-- Git LFS does not work with GitHub Pages (official community): https://github.com/orgs/community/discussions/50337
-- MDN Web Docs — Video codec guide: https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Video_codecs
-- Can I Use — MPEG-4/H.264: https://caniuse.com/mpeg4
-- mplsoccer PyPI (version 1.6.1, Python >=3.10): https://pypi.org/project/mplsoccer/
-- mplsoccer heatmap docs: https://mplsoccer.readthedocs.io/en/latest/gallery/pitch_plots/plot_heatmap.html
-- Chart.js docs (version 4.5.1): https://www.chartjs.org/docs/latest/api/
-- Astro GitHub Pages deployment: https://docs.astro.build/en/guides/deploy/github/
-- d3-soccer library: https://github.com/probberechts/d3-soccer
-- D3 contourDensity: https://d3js.org/d3-contour/density
-- Codebase-specific bugs: C:/Korner flag/.planning/codebase/CONCERNS.md (first-party audit)
+- Supervision official docs + GitHub issues `#1044`, `#1001`, `#1545` — ByteTrack parameter names, defaults, community-validated tuning ranges for soccer tracking
+- mplsoccer official docs (`mplsoccer.readthedocs.io`) — `bin_statistic` + `heatmap` API confirmed for per-player use
+- Springer "Automatic event detection in football using tracking data" (2022) — deterministic possession-change state machine; F-scores 0.93 pass, 0.95 shot
+- Springer "Automating assist identification in football" (2025) — assist lookback window design and edge cases
+- arXiv 2410.07401 "Enhancing Soccer Camera Calibration Through Keypoint Exploitation" (2024) — keypoint + homography calibration approach
+- TVCalib (`mm4spa.github.io/tvcalib`) — camera calibration methodology for sports broadcast
+- Ultralytics GitHub discussion `#19784` — ByteTrack ID reassignment root causes
+- Codebase direct inspection: `tracker.py`, `view_transformer.py`, `main.py`, `team_assigner.py`, `player_ball_assigner.py`, `camera_movement_estimator.py`, `generate_heatmaps.py`, `08fd33_4_annotated_stats.json`
 
 ### Secondary (MEDIUM confidence)
 
-- Cloudflare R2 zero-egress pricing and video serving: https://community.cloudflare.com/t/can-we-serve-video-with-r2/406275
-- GitHub Releases video embedding pattern: https://www.cazzulino.com/github-pages-embed-video.html
-- FFmpeg AVI-to-MP4 with faststart: https://jshakespeare.com/encoding-browser-friendly-video-files-with-ffmpeg/
-- GitHub community discussion on large MP4 on Pages: https://github.com/orgs/community/discussions/22302
-- YOLO-Based Object Detection and Player Tracking — Zenodo: https://zenodo.org/records/16929566
-- Camera Calibration in Sports with Keypoints — Roboflow: https://blog.roboflow.com/camera-calibration-sports-computer-vision/
-- Deep learning detection of players and heatmap generation — Emerald: https://emerald.com/insight/content/doi/10.1108/aci-07-2024-0257/full/html
-- Metrica Sports automatic tracking: https://www.metrica-sports.com/help-center/playbase-fundamentals/automatic-player-tracking
-- Heat Maps in Soccer — Soccer Wizdom: https://soccerwizdom.com/2025/03/13/heat-maps-in-soccer-tracking-movement-performance-and-strategy/
-- Digital Shift in College Athletics — Emory Wheel: https://www.emorywheel.com/article/2025/12/the-digital-shift-in-college-athletics-how-technology-is-changing-coaching-strategies
+- Roboflow blog "Camera Calibration in Sports with Keypoints" — YOLO keypoint + findHomography pattern; 32-keypoint dataset reference
+- Roboflow Universe `football-field-detection-f07vi` — pretrained 32-keypoint soccer pitch model (mAP 0.99 reported on training data)
+- `github.com/roboflow/sports` — `SoccerPitchConfiguration` API; install via git
+- PMC/PLOS One "Event detection in football: Improving the reliability of match analysis" (2024)
+- PathCRF arXiv 2602.12080 (2025) — ball-free possession path inference
+- arXiv 2411.08216 "Global Tracklet Association for Multi-Object Tracking in Sports" (2024)
+- tryolabs.com "Automatically Measuring Soccer Ball Possession with AI" — possession and pass detection implementation patterns
+- Improved ByteTrack for Soccer Multi-Player Tracking (GitHub) — parameter tuning validation for soccer
+- SoccerNet Ball Action Spotting challenge results — event detection accuracy benchmarks
+
+### Tertiary (LOW confidence / needs validation)
+
+- Roboflow pitch keypoint model performance on NC State footage specifically — untested; mAP 0.99 on training data does not guarantee performance on NC State stadium conditions
 
 ---
-
-*Research completed: 2026-03-16*
+*Research completed: 2026-03-24*
 *Ready for roadmap: yes*
