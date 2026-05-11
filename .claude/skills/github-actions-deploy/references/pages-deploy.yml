@@ -1,0 +1,62 @@
+# GitHub Pages Deploy Workflow — Korner Flags
+# Option A: peaceiris/actions-gh-pages (push to gh-pages branch)
+#
+# Setup:
+#   1. Go to repo Settings → Pages → Source → Deploy from branch → gh-pages
+#   2. Commit this file to .github/workflows/deploy.yml on main
+#   3. Push to main to trigger first deploy
+#
+# What it does:
+#   - Copies site/ and data/ into a dist/ folder
+#   - Adds .nojekyll so GitHub Pages doesn't strip underscore folders
+#   - Pushes dist/ to the gh-pages branch
+#   - Videos are NOT bundled — they're served from GitHub Releases CDN URLs in manifest.json
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'data/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:    # manual trigger from GitHub UI
+
+permissions:
+  contents: write       # peaceiris needs write to push gh-pages branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build site
+        run: |
+          mkdir -p dist/data
+
+          # Copy site source (HTML, CSS, JS)
+          cp -r site/* dist/
+
+          # Copy data files (manifest.json, stats JSON, heatmap PNGs)
+          # Videos are NOT copied — they live on GitHub Releases CDN
+          cp data/manifest.json dist/data/manifest.json
+
+          # Disable Jekyll so GitHub Pages serves files as-is
+          touch dist/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          commit_message: 'deploy: ${{ github.event.head_commit.message }}'
+
+# ---
+# To add PR previews later, create a second workflow triggered on pull_request
+# that deploys to a subfolder like gh-pages/preview/pr-{number}/
+# and a cleanup workflow on pull_request closed to delete it.

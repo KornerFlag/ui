@@ -1,0 +1,71 @@
+# GitHub Pages Deployment Workflow (Modern — actions/deploy-pages)
+# Copy this to .github/workflows/deploy.yml in your repo.
+#
+# Prerequisites:
+#   1. Repo Settings → Pages → Source → "GitHub Actions"
+#   2. Ensure the permissions block below is present (id-token: write is required)
+#
+# Works for: vanilla HTML/JS/CSS, no build step needed.
+# If you have a build step, add it between "checkout" and "upload-pages-artifact".
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main         # Auto-deploy on push to main
+  workflow_dispatch: # Manual trigger from Actions UI
+
+# REQUIRED for actions/deploy-pages — do not remove id-token: write
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Prevent concurrent deploys; cancel in-progress runs on new push
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------------------------------------------------------------
+      # Optional: npm build step (uncomment if you have a package.json)
+      # ---------------------------------------------------------------
+      # - name: Cache npm
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.npm
+      #     key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-npm-
+      #
+      # - name: Install dependencies
+      #   run: npm ci
+      #
+      # - name: Build
+      #   run: npm run build
+      # ---------------------------------------------------------------
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Change this to your build output folder if you have a build step
+          # e.g. path: ./dist  or  path: ./public
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
