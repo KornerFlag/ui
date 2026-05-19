@@ -10,98 +10,50 @@
       "Bash(npm:*)",
       "Bash(npx:*)",
       "Bash(node:*)",
-      "Write(*)"
+      "Write(*)",
+      "Bash(ollama:*)"
     ]
   },
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/gsd-check-update.js"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-session-state.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/gsd-context-monitor.js",
-            "timeout": 10
-          }
-        ],
-        "matcher": "Bash|Edit|Write|MultiEdit|Agent|Task"
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-read-injection-scanner.js",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-phase-boundary.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/gsd-prompt-guard.js",
+            "command": "pyw .claude/hooks/safety_guard.py",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pyw .claude/hooks/save_session.py",
+            "timeout": 60
           }
         ]
       },
       {
-        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-read-guard.js",
-            "timeout": 5
+            "command": "pyw .claude/hooks/test_gate.py",
+            "timeout": 120
           }
         ]
-      },
+      }
+    ],
+    "PreCompact": [
       {
-        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-workflow-guard.js",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-validate-commit.sh",
-            "timeout": 5
+            "command": "pyw .claude/hooks/save_session.py --compact",
+            "timeout": 60
           }
         ]
       }
@@ -109,7 +61,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "node .claude/hooks/gsd-statusline.js"
+    "command": "pyw .claude/hooks/statusline.py"
   },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true

@@ -114,11 +114,48 @@ exact triggers.
 Default delegation targets:
 - Bulk dataset/label sanity checks before training runs
 - First-pass review of large diffs (Claude does deep review after)
-- Test data generation
+- Test data generation (pytest fixtures, synthetic frame metadata, mock detections)
 - Obsidian note tagging (via Smart Connections plugin)
 - Frame metadata extraction from match logs
+- Repetitive CV boilerplate (NMS helpers, drawing utilities, transform compositions)
 
-Invoke: `ollama run qwen2.5-coder:14b "<prompt>"` from bash.
+### How Claude invokes the coder
+
+Use the pre-built `ask-coder.ps1` wrapper, not raw `ollama run`. It returns the
+model's text response directly to Claude, which then applies the result via
+Edit/Write — coder never touches files itself.
+
+```powershell
+C:\Users\cosmi\.claude\scripts\ask-coder.ps1 -Prompt "<task spec>" [-TimeoutSec 300]
+```
+
+For long or multi-line prompts (or anything containing emojis/wide unicode), write
+the prompt to a temp file first and use `-PromptFile <path>` to avoid PowerShell
+argv encoding mangling.
+
+The wrapper is pre-allowed in `~/.claude/settings.json` — no permission prompt.
+Permission entry: `PowerShell(*ask-coder.ps1*)`.
+
+### Pattern (Claude orchestrates, coder generates, Claude applies)
+
+1. Claude reads relevant code/spec and writes a tight prompt (200–600 chars)
+2. Claude calls `ask-coder.ps1 -Prompt "..."` and captures the returned text
+3. Claude reviews the output, patches any small bugs (model is 14B, watch for
+   off-by-one and missing edge cases), then writes/edits the target file
+4. Claude verifies (tests, eval harness, browser) — never delegates verification
+
+### When NOT to delegate
+
+- Tasks requiring codebase context (you'd have to paste the context anyway —
+  cheaper to just do it)
+- Multi-file edits (coder returns text, can't coordinate across files)
+- Anything touching `TrackedObject` or the eval harness (judgment calls)
+- Hot paths where correctness matters more than throughput
+
+### Alternative invocation (manual, in a separate terminal)
+
+If you (Krish) want to drive the coder directly without Claude in the loop:
+`ollama run qwen2.5-coder:14b "<prompt>"` from bash. Same model, no wrapper.
 
 ---
 
