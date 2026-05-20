@@ -35,3 +35,6 @@ venv/
 
 # Claude Code local settings (may hold secrets like ANTHROPIC_API_KEY)
 .claude/settings.local.json
+
+# Eval harness run artifacts (the canonical record lives in Obsidian experiments/)
+eval/results*.json

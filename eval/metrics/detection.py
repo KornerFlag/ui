@@ -49,8 +49,13 @@ def _read_yolo_labels(label_path: Path, img_w: int, img_h: int) -> sv.Detections
 def compute_detection_metrics(
     model_path: str,
     clip_dir: str,
-    conf: float = 0.1,
+    conf: float = 0.001,
 ) -> dict:
+    # conf is the *eval* confidence floor, not a demo/inference threshold. Keep it
+    # near zero so the full precision-recall tail is captured and mAP stays
+    # comparable across model versions (matches Ultralytics `val`). On the v1
+    # baseline the difference vs conf=0.1 is tiny (+0.0017 map50), but a future
+    # model with a different confidence distribution could diverge — pin it.
     clip = Path(clip_dir)
     images_dir = clip / "images"
     labels_dir = clip / "labels"

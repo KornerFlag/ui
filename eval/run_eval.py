@@ -134,7 +134,9 @@ def main() -> None:
                         help="Directory with images/ and labels/ (and optionally keypoints/)")
     parser.add_argument("--model", default="models/best.pt", type=str)
     parser.add_argument("--output", default="eval/results.json", type=str)
-    parser.add_argument("--conf", default=0.1, type=float)
+    parser.add_argument("--conf", default=0.001, type=float,
+                        help="Eval confidence floor for mAP (keep near zero for the full "
+                             "PR curve; not a demo/inference threshold)")
     parser.add_argument("--tracks-stub", default=None, type=str,
                         help="Optional pipeline tracks .pkl for sanity + homography metrics")
     parser.add_argument("--skip-detection", action="store_true",
