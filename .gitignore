@@ -31,3 +31,4 @@ stubs/
 # Environment
 .env
 venv/
+.venv/
