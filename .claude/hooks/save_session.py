@@ -143,7 +143,9 @@ def main():
     snippet = read_transcript(transcript_path) if transcript_path else "[no transcript path provided]"
     yaml_text = call_api(snippet)
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H:%M")
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
     if is_compact:
@@ -153,11 +155,18 @@ def main():
         fname = f"{today}.md"
 
     dest = SESSIONS_DIR / fname
-    dest.write_text(
-        f"---\ndate: {today}\nsession_id: {session_id}\ntags: [korner-flag, session-log]\n---\n\n"
-        f"# Session {today}\n\n```yaml\n{yaml_text}\n```\n",
-        encoding="utf-8",
-    )
+    session_block = f"## Session {time_str} — {session_id}\n\n```yaml\n{yaml_text}\n```\n"
+
+    if dest.exists() and dest.read_text(encoding="utf-8").strip():
+        # Don't clobber a prior same-day session or any manual edits — append.
+        with dest.open("a", encoding="utf-8") as f:
+            f.write(f"\n---\n\n{session_block}")
+    else:
+        dest.write_text(
+            f"---\ndate: {today}\nsession_id: {session_id}\ntags: [korner-flag, session-log]\n---\n\n"
+            f"# Session log {today}\n\n{session_block}",
+            encoding="utf-8",
+        )
 
     write_gotchas(yaml_text, today)
     sync_claude_md()
