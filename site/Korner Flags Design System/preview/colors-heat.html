@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--surface-0);font-family:var(--font-ui);padding:26px 30px}
+  .ramp{display:flex;border-radius:10px;overflow:hidden;height:64px;box-shadow:var(--shadow-xs)}
+  .ramp div{flex:1}
+  .lbls{display:flex;margin-top:8px}
+  .lbls span{flex:1;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--fg-4)}
+  .cap{margin-top:14px;font-size:13px;color:var(--fg-3);line-height:1.5}
+  b{color:var(--fg-2)}
+</style></head>
+<body>
+  <div class="ramp">
+    <div style="background:var(--heat-0)"></div><div style="background:var(--heat-1)"></div>
+    <div style="background:var(--heat-2)"></div><div style="background:var(--heat-3)"></div>
+    <div style="background:var(--heat-4)"></div><div style="background:var(--heat-5)"></div>
+  </div>
+  <div class="lbls"><span>low</span><span></span><span></span><span></span><span></span><span>high</span></div>
+  <div class="cap"><b>Heat scale</b> — cool steel → warm brick, six stops. Drives heatmaps and movement-intensity overlays. Deliberately avoids neon.</div>
+</body></html>

@@ -1,116 +1,217 @@
 ---
-const { team1Players, team2Players } = Astro.props;
+import { formatDistance, safeNumber } from "../lib/site";
+
+const {
+  team1Players = [],
+  team2Players = [],
+  team1Label = "Team 1",
+  team2Label = "Team 2",
+} = Astro.props;
+
+const isSpeedPending = (player: Record<string, any>) =>
+  safeNumber(player.max_speed_kmh) > 40 || safeNumber(player.avg_speed_kmh) > 15;
+
+const sortedTeam1 = [...team1Players].sort(
+  (left, right) => safeNumber(right.total_distance_km) - safeNumber(left.total_distance_km),
+);
+
+const sortedTeam2 = [...team2Players].sort(
+  (left, right) => safeNumber(right.total_distance_km) - safeNumber(left.total_distance_km),
+);
+
+const formatSpeed = (value: number | null | undefined) => `${safeNumber(value).toFixed(1)} km/h`;
 ---
 
-<div class="player-stats-section">
-  <div class="team-table-wrap">
-    <h4 class="team-heading" style="border-left: 4px solid #0071e3; padding-left: 12px;">Team 1</h4>
-    <div class="table-scroll-wrap">
-      <table class="stats-table">
-        <thead>
-          <tr>
-            <th scope="col">Player</th>
-            <th scope="col">Top Speed</th>
-            <th scope="col">Avg Speed</th>
-            <th scope="col">Distance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {team1Players.map((p) => (
-            <tr>
-              <td>#{p.id}</td>
-              <td>{p.max_speed_kmh.toFixed(1)} km/h</td>
-              <td>{p.avg_speed_kmh.toFixed(1)} km/h</td>
-              <td>{p.distance_m.toFixed(1)} m</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+<section class="player-card surface-card">
+  <div class="player-head">
+    <div>
+      <p class="panel-kicker">Running output</p>
+      <h3>Distance first, speed with restraint</h3>
     </div>
+    <p>
+      Distance is currently the most stable player-level signal. Sprint values that look
+      implausible stay marked as under review until calibration improves.
+    </p>
   </div>
 
-  <div class="team-table-wrap">
-    <h4 class="team-heading" style="border-left: 4px solid #e8732a; padding-left: 12px;">Team 2</h4>
-    <div class="table-scroll-wrap">
-      <table class="stats-table">
-        <thead>
-          <tr>
-            <th scope="col">Player</th>
-            <th scope="col">Top Speed</th>
-            <th scope="col">Avg Speed</th>
-            <th scope="col">Distance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {team2Players.map((p) => (
-            <tr>
-              <td>#{p.id}</td>
-              <td>{p.max_speed_kmh.toFixed(1)} km/h</td>
-              <td>{p.avg_speed_kmh.toFixed(1)} km/h</td>
-              <td>{p.distance_m.toFixed(1)} m</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <div class="team-panels">
+    <section class="team-panel">
+      <div class="team-heading">
+        <h4>{team1Label}</h4>
+        <span>{sortedTeam1.length} tracked players</span>
+      </div>
 
-  <p class="disclaimer">AI-estimated from video — values are approximate</p>
-</div>
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Player ID</th>
+              <th>Distance</th>
+              <th>Avg speed</th>
+              <th>Max speed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedTeam1.map((player) => {
+              const speedPending = isSpeedPending(player);
+              return (
+                <tr>
+                  <td class="mono">#{player.player_id}</td>
+                  <td>{formatDistance(player.total_distance_km)}</td>
+                  <td>{speedPending ? "Under review" : formatSpeed(player.avg_speed_kmh)}</td>
+                  <td>{speedPending ? "Under review" : formatSpeed(player.max_speed_kmh)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="team-panel">
+      <div class="team-heading">
+        <h4>{team2Label}</h4>
+        <span>{sortedTeam2.length} tracked players</span>
+      </div>
+
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Player ID</th>
+              <th>Distance</th>
+              <th>Avg speed</th>
+              <th>Max speed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedTeam2.map((player) => {
+              const speedPending = isSpeedPending(player);
+              return (
+                <tr>
+                  <td class="mono">#{player.player_id}</td>
+                  <td>{formatDistance(player.total_distance_km)}</td>
+                  <td>{speedPending ? "Under review" : formatSpeed(player.avg_speed_kmh)}</td>
+                  <td>{speedPending ? "Under review" : formatSpeed(player.max_speed_kmh)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</section>
 
 <style>
-  .player-stats-section {
-    margin-top: 32px;
+  .player-card {
+    padding: 26px;
   }
 
-  .team-table-wrap {
+  .player-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
     margin-bottom: 24px;
   }
 
+  .panel-kicker {
+    margin: 0 0 8px;
+    color: var(--steel-700);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .player-head h3 {
+    margin: 0;
+    color: var(--ink-900);
+    font-family: var(--font-display);
+    font-size: 1.65rem;
+    letter-spacing: -0.03em;
+  }
+
+  .player-head p:last-child {
+    margin: 0;
+    max-width: 420px;
+    color: var(--slate-600);
+    line-height: 1.65;
+  }
+
+  .team-panels {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-panel {
+    padding: 18px;
+    border-radius: 20px;
+    border: var(--border-subtle);
+    background: linear-gradient(180deg, rgba(241, 246, 252, 0.8), rgba(255, 255, 255, 0.95));
+  }
+
   .team-heading {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #1d1d1f;
-    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
   }
 
-  .table-scroll-wrap {
+  .team-heading h4 {
+    margin: 0;
+    color: var(--ink-900);
+    font-size: 1.05rem;
+  }
+
+  .team-heading span {
+    color: var(--slate-500);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .table-shell {
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
-  .stats-table {
+  table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
-    min-width: 400px;
   }
 
-  .stats-table th {
-    text-align: left;
-    padding: 10px 16px;
-    font-weight: 600;
-    color: #6e6e73;
-    border-bottom: 2px solid #e5e5e7;
-    font-size: 0.8rem;
+  thead th {
+    padding: 12px 10px;
+    border-bottom: 1px solid rgba(22, 39, 61, 0.08);
+    color: var(--slate-500);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    text-align: left;
   }
 
-  .stats-table td {
-    padding: 10px 16px;
-    border-bottom: 1px solid #f0f0f0;
-    color: #1d1d1f;
+  tbody td {
+    padding: 14px 10px;
+    border-bottom: 1px solid rgba(22, 39, 61, 0.06);
+    color: var(--slate-700);
+    font-size: 0.94rem;
   }
 
-  .stats-table tbody tr:hover {
-    background: #f9f9fb;
+  tbody tr:last-child td {
+    border-bottom: none;
   }
 
-  .disclaimer {
-    margin-top: 8px;
-    font-size: 0.8rem;
-    color: #86868b;
-    text-align: center;
+  @media (max-width: 900px) {
+    .player-head {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .team-panels {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

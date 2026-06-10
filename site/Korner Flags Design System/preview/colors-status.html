@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--surface-0);font-family:var(--font-ui);padding:26px 30px}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px 6px 11px;border-radius:999px;font-size:13px;font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .cap{margin-top:16px;font-size:12px;color:var(--fg-4);font-family:var(--font-mono)}
+</style></head>
+<body>
+  <div class="row">
+    <span class="pill" style="background:var(--pitch-100);color:var(--pitch-600)"><span class="dot" style="background:var(--pitch-600)"></span>Ready</span>
+    <span class="pill" style="background:var(--amber-100);color:var(--amber-600)"><span class="dot" style="background:var(--amber-600)"></span>Processing</span>
+    <span class="pill" style="background:var(--slate-100);color:var(--slate-500)"><span class="dot" style="background:var(--slate-500)"></span>Draft</span>
+    <span class="pill" style="background:var(--signal-100);color:var(--signal-600)"><span class="dot" style="background:var(--signal-600)"></span>Foul flagged</span>
+  </div>
+  <div class="cap">pitch-600 #1F7A57 &nbsp;·&nbsp; amber-600 #B5792A &nbsp;·&nbsp; slate-500 #677789 &nbsp;·&nbsp; signal-600 #B24A36</div>
+</body></html>

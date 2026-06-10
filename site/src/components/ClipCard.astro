@@ -1,83 +1,133 @@
 ---
-interface Props {
-  clip: {
-    clip_id: string;
-    title: string;
-    duration_seconds: number;
-    thumbnail_url: string;
-  };
-}
+import { clipSubtitle, clipThumbnail, clipTitle, clipVideo, formatDuration, withBase } from "../lib/site";
 
-const { clip } = Astro.props;
-const base = import.meta.env.BASE_URL;
-const minutes = Math.floor(clip.duration_seconds / 60);
-const seconds = Math.round(clip.duration_seconds % 60);
+const { clip, cta = "Open analysis" } = Astro.props;
+
+const href = `${import.meta.env.BASE_URL}clips/${clip.clip_id}/`;
+const thumbnail = withBase(clipThumbnail(clip));
+const fallbackVideo = withBase(clipVideo(clip));
+const duration = formatDuration(clip.duration_seconds);
+const label = clipTitle(clip);
+const subtitle = clipSubtitle(clip);
 ---
 
-<a href={`${base}clips/${clip.clip_id}/`}>
-  <div class="clip-card">
-    <img
-      src={`${base}${clip.thumbnail_url.replace(/^\//, '')}`}
-      alt={clip.title}
-      class="clip-thumbnail"
-      loading="lazy"
-    />
-    <div class="clip-info">
-      <h3 class="clip-title">{clip.title}</h3>
-      <span class="clip-duration">{minutes}:{seconds.toString().padStart(2, '0')}</span>
-      <span class="clip-cta">View Analysis &rarr;</span>
+<article class="clip-card">
+  <a class="clip-media" href={href}>
+    {thumbnail ? (
+      <img src={thumbnail} alt={`${label} preview`} loading="lazy" />
+    ) : fallbackVideo ? (
+      <video muted playsinline preload="metadata">
+        <source src={fallbackVideo} />
+      </video>
+    ) : (
+      <div class="clip-media-fallback">
+        <span>Match room</span>
+      </div>
+    )}
+    <span class="clip-duration mono">{duration}</span>
+  </a>
+
+  <div class="clip-body">
+    <div class="clip-copy">
+      <p class="clip-kicker">{subtitle}</p>
+      <h3>{label}</h3>
+      <p>
+        Video-first review room with possession context, running output, passing space for future
+        tagging, and team heatmaps framed for coach discussion.
+      </p>
     </div>
+
+    <a class="clip-link" href={href}>{cta}</a>
   </div>
-</a>
+</article>
 
 <style>
-  a {
-    text-decoration: none;
-    color: inherit;
-  }
-
   .clip-card {
-    background: #ffffff;
-    border-radius: 12px;
+    display: grid;
+    gap: 0;
+    border-radius: 24px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    border: var(--border-subtle);
+    background: var(--surface-0);
+    box-shadow: var(--shadow-card);
   }
 
-  .clip-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    transform: translateY(-2px);
-  }
-
-  .clip-thumbnail {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
+  .clip-media {
+    position: relative;
     display: block;
+    min-height: 232px;
+    background:
+      linear-gradient(180deg, rgba(11, 22, 38, 0.1), rgba(11, 22, 38, 0.5)),
+      linear-gradient(135deg, var(--ink-700), var(--ink-900));
   }
 
-  .clip-info {
-    padding: 1rem 1.25rem;
+  .clip-media img,
+  .clip-media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
-  .clip-title {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: #1d1d1f;
+  .clip-media-fallback {
+    display: grid;
+    place-items: center;
+    min-height: 232px;
+    color: rgba(255, 255, 255, 0.78);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .clip-duration {
-    font-size: 0.85rem;
-    color: #6e6e73;
-    display: block;
-    margin-top: 0.25rem;
+    position: absolute;
+    left: 18px;
+    bottom: 18px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(11, 22, 38, 0.78);
+    color: white;
+    font-size: 0.79rem;
   }
 
-  .clip-cta {
-    display: inline-block;
-    margin-top: 0.75rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #0066cc;
+  .clip-body {
+    display: grid;
+    gap: 20px;
+    padding: 22px;
+  }
+
+  .clip-kicker {
+    margin: 0 0 10px;
+    color: var(--steel-700);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .clip-copy h3 {
+    margin: 0;
+    color: var(--ink-900);
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    letter-spacing: -0.03em;
+  }
+
+  .clip-copy p:last-child {
+    margin: 12px 0 0;
+    color: var(--slate-600);
+    line-height: 1.7;
+  }
+
+  .clip-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0 16px;
+    width: fit-content;
+    border-radius: 999px;
+    background: var(--steel-050);
+    color: var(--steel-700);
+    font-weight: 800;
   }
 </style>

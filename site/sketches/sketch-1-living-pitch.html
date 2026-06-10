@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sketch 1 — Living Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-900:#0B1626; --ink-700:#16273D;
+    --steel-400:#6BA0D8; --steel-200:#C5DAF0; --amber:#E8C76B;
+    --font-display:'Fraunces',Georgia,serif; --font-body:'Inter',system-ui,sans-serif; --font-mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font-body);background:#06101c;color:#fff;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 24px 48px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:-.02em}
+  .brand .mark{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--steel-400),#2C6BB0);font-family:var(--font-display);font-weight:700}
+  .topbar nav{display:flex;gap:8px;font-size:.92rem;color:rgba(255,255,255,.7)}
+  .topbar nav a{padding:8px 14px;border-radius:999px}
+  .topbar nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+  .stage{position:relative;border-radius:30px;overflow:hidden;min-height:600px;
+    background:radial-gradient(circle at 75% 10%,rgba(107,160,216,.22),transparent 40%),linear-gradient(150deg,#08131f,#0e2336 60%,#123052);
+    border:1px solid rgba(255,255,255,.07);box-shadow:0 40px 90px rgba(4,12,22,.5)}
+  canvas{position:absolute;inset:0;width:100%;height:100%}
+  .veil{position:absolute;inset:0;background:linear-gradient(105deg,rgba(6,16,28,.92) 30%,rgba(6,16,28,.35) 62%,transparent 80%);pointer-events:none}
+  .copy{position:relative;z-index:2;max-width:560px;padding:54px 0 0 52px}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--steel-200);padding:7px 12px;border:1px solid rgba(197,218,240,.22);border-radius:999px}
+  .live{width:7px;height:7px;border-radius:50%;background:#5ee08a;box-shadow:0 0 10px #5ee08a;animation:blink 1.6s infinite}
+  @keyframes blink{50%{opacity:.3}}
+  h1{font-family:var(--font-display);font-weight:600;font-size:clamp(2.8rem,5.4vw,4.6rem);line-height:.98;letter-spacing:-.02em;margin:22px 0 0}
+  h1 em{font-style:italic;color:var(--steel-400)}
+  .sub{margin:20px 0 0;max-width:440px;color:rgba(255,255,255,.74);line-height:1.7;font-size:1.04rem}
+  .cta{display:flex;gap:12px;margin-top:30px}
+  .btn{display:inline-flex;align-items:center;min-height:50px;padding:0 22px;border-radius:999px;font-weight:600;font-size:.98rem}
+  .btn-p{background:#fff;color:var(--ink-900)}
+  .btn-s{border:1px solid rgba(255,255,255,.25);color:#fff}
+  .chips{position:absolute;right:34px;bottom:30px;z-index:2;display:grid;gap:12px;width:230px}
+  .chip{background:rgba(9,20,33,.6);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(14px);
+    border-radius:18px;padding:16px 18px}
+  .chip .k{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+  .chip .v{font-family:var(--font-display);font-size:1.9rem;margin-top:4px;letter-spacing:-.02em}
+  .chip .v small{font-size:.9rem;color:rgba(255,255,255,.6)}
+  .foot{margin-top:18px;color:rgba(255,255,255,.4);font-size:.82rem;font-family:var(--font-mono)}
+  @media(max-width:820px){.copy{padding:34px 22px 0}.chips{position:static;width:auto;grid-template-columns:repeat(3,1fr);margin:18px 22px}.veil{background:linear-gradient(180deg,rgba(6,16,28,.55),rgba(6,16,28,.92))}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><span class="mark">KF</span> Korner&nbsp;Flags</div>
+      <nav><a>Product</a><a>Match rooms</a><a>Heatmaps</a><a>Pricing</a></nav>
+    </div>
+
+    <div class="stage">
+      <canvas id="pitch"></canvas>
+      <div class="veil"></div>
+      <div class="copy">
+        <span class="eyebrow"><span class="live"></span> Live tracking · NC State</span>
+        <h1>The match,<br><em>decoded.</em></h1>
+        <p class="sub">Every player, tracked. Every run, measured. Korner Flags turns raw match footage into a tactical board you can read in seconds.</p>
+        <div class="cta">
+          <a class="btn btn-p">Open a match room</a>
+          <a class="btn btn-s">Watch the demo</a>
+        </div>
+      </div>
+      <div class="chips">
+        <div class="chip"><div class="k">Possession</div><div class="v" id="poss">62.1<small>%</small></div></div>
+        <div class="chip"><div class="k">Distance covered</div><div class="v" id="dist">1.9<small> km</small></div></div>
+        <div class="chip"><div class="k">Match second</div><div class="v" id="sec">00<small>s</small></div></div>
+      </div>
+    </div>
+    <div class="foot">Direction 1 — “Living Pitch”. Real positions.json data · animated tracking · Fraunces + Inter.</div>
+  </div>
+
+<script src="sketch-data.js"></script>
+<script src="pitch.js"></script>
+<script>
+  const d = window.KF_DATA.clip1;
+  const p = new KFPitch(document.getElementById('pitch'), d, {heat:null, dots:true, trails:true, speed:1.1});
+  document.getElementById('dist').innerHTML = d.totalDistKm + '<small> km</small>';
+  document.getElementById('poss').innerHTML = Math.max(...d.possession) + '<small>%</small>';
+  p.onTick = (t)=>{ document.getElementById('sec').innerHTML = String(Math.floor(t)).padStart(2,'0')+'<small>s</small>'; };
+</script>
+</body>
+</html>

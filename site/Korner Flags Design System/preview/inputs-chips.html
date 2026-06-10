@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--surface-0);font-family:var(--font-ui);padding:24px 30px;display:flex;flex-direction:column;gap:16px}
+  .field{display:flex;flex-direction:column;gap:6px;max-width:340px}
+  label{font-size:12px;font-weight:600;color:var(--fg-3)}
+  input{font-family:var(--font-ui);font-size:14px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg-1);background:#fff}
+  input:focus{outline:none;border-color:var(--steel-500);box-shadow:0 0 0 3px var(--steel-100)}
+  .focus{border-color:var(--steel-500);box-shadow:0 0 0 3px var(--steel-100)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{font-size:13px;font-weight:600;padding:6px 13px;border-radius:999px;border:1px solid var(--border);color:var(--fg-2);background:#fff;cursor:pointer}
+  .chip.on{background:var(--steel-600);border-color:var(--steel-600);color:#fff}
+</style></head>
+<body>
+  <div class="field"><label>Search matches</label><input class="focus" value="NC State" /></div>
+  <div class="chips">
+    <span class="chip on">All</span>
+    <span class="chip">Ready</span>
+    <span class="chip">Processing</span>
+    <span class="chip">Training</span>
+    <span class="chip">Season 25/26</span>
+  </div>
+</body></html>

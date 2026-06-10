@@ -1,0 +1,79 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ClipCard from "../components/ClipCard.astro";
+import manifestData from "../../public/data/manifest.json";
+import { safeNumber } from "../lib/site";
+
+const clips = manifestData.clips || [];
+const footageMinutes = Math.round(
+  clips.reduce((sum: number, clip: Record<string, any>) => sum + safeNumber(clip.duration_seconds), 0) / 60,
+);
+---
+
+<BaseLayout
+  title="Korner Flags | Past matches"
+  description="Archive of analyzed matches inside Korner Flags."
+  activeNav="matches"
+>
+  <div class="page matches-page">
+    <section class="surface-card archive-hero">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">Past matches</span>
+          <h1 class="display">An archive built for staff review.</h1>
+        </div>
+        <p>
+          This page is designed to scale into a full historical library while staying readable
+          during live screen-sharing and coach review sessions.
+        </p>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-card">
+          <span>Matches in archive</span>
+          <strong>{clips.length}</strong>
+          <p>Every row or card should make it obvious what to open next.</p>
+        </div>
+        <div class="metric-card">
+          <span>Processed footage</span>
+          <strong>{footageMinutes} min</strong>
+          <p>Pre-generated demo footage, ready for immediate review without analyst setup overhead.</p>
+        </div>
+        <div class="metric-card">
+          <span>Analysis status</span>
+          <strong>Ready</strong>
+          <p>Current rooms emphasize possession, movement output, and tactical heatmap context.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="archive-grid">
+      {clips.map((clip) => (
+        <ClipCard clip={clip} cta="Review match" />
+      ))}
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .matches-page {
+    display: grid;
+    gap: 28px;
+  }
+
+  .archive-hero {
+    padding: 30px;
+  }
+
+  .archive-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 820px) {
+    .archive-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

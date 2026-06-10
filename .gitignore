@@ -38,3 +38,6 @@ venv/
 
 # Eval harness run artifacts (the canonical record lives in Obsidian experiments/)
 eval/results*.json
+
+# macOS
+.DS_Store

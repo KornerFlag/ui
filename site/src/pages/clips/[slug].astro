@@ -1,170 +1,514 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import VideoPlayer from '../../components/VideoPlayer.astro';
-import manifestData from '../../../public/data/manifest.json';
-import PossessionBar from '../../components/PossessionBar.astro';
-import PlayerStatsTable from '../../components/PlayerStatsTable.astro';
-import ComingSoonCards from '../../components/ComingSoonCards.astro';
-
-const base = import.meta.env.BASE_URL;
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import manifestData from "../../../public/data/manifest.json";
+import VideoPlayer from "../../components/VideoPlayer.astro";
+import PossessionBar from "../../components/PossessionBar.astro";
+import PlayerStatsTable from "../../components/PlayerStatsTable.astro";
+import ComingSoonCards from "../../components/ComingSoonCards.astro";
+import {
+  clipHeatmap,
+  clipSubtitle,
+  clipThumbnail,
+  clipTitle,
+  clipVideo,
+  formatDistance,
+  normalizeStats,
+  safeNumber,
+  withBase,
+} from "../../lib/site";
 
 export function getStaticPaths() {
-  return manifestData.clips.map((clip) => ({
+  return (manifestData.clips || []).map((clip: Record<string, any>) => ({
     params: { slug: clip.clip_id },
     props: { clip },
   }));
 }
 
 const { clip } = Astro.props;
-
-// Import stats JSON at build time — Vite resolves template literal with literal prefix
 const statsModule = await import(`../../../public/data/${clip.clip_id}_annotated_stats.json`);
-const stats = statsModule.default;
+const stats = statsModule.default || statsModule;
+const normalizedStats = normalizeStats(stats, clip);
 
-// Extract possession percentages
-const t1Pct = stats.possession.team_1_percent;
-const t2Pct = stats.possession.team_2_percent;
+const team1Players = normalizedStats.team1Players;
+const team2Players = normalizedStats.team2Players;
+const allPlayers = normalizedStats.allPlayers;
 
-// Partition players by team, filter ghost entries (all zeros), sort by ID ascending
-const allPlayers = Object.entries(stats.players)
-  .map(([id, data]) => ({ id: Number(id), ...data }))
-  .filter(p => p.distance_m > 0 || p.max_speed_kmh > 0)
-  .sort((a, b) => a.id - b.id);
+const team1Label = normalizedStats.team1Label;
+const team2Label = normalizedStats.team2Label;
+const team1Pct = normalizedStats.team1Pct;
+const team2Pct = normalizedStats.team2Pct;
+const topRunner =
+  [...allPlayers].sort(
+    (left, right) =>
+      safeNumber(right.total_distance_km) - safeNumber(left.total_distance_km),
+  )[0] || null;
+const totalDistance = allPlayers.reduce(
+  (sum: number, player) => sum + safeNumber(player.total_distance_km),
+  0,
+);
+const activePlayers = new Set(allPlayers.map((player) => player.player_id)).size;
+const possessionLeader = team1Pct >= team2Pct ? team1Label : team2Label;
 
-const team1Players = allPlayers.filter(p => p.team === 1);
-const team2Players = allPlayers.filter(p => p.team === 2);
+const heatmapTeam1 =
+  stats.heatmaps?.team1 ||
+  stats.heatmap_paths?.team1 ||
+  stats.team_heatmaps?.team1 ||
+  clipHeatmap(clip, 1) ||
+  `/data/${clip.clip_id}_heatmap_team1.png`;
+const heatmapTeam2 =
+  stats.heatmaps?.team2 ||
+  stats.heatmap_paths?.team2 ||
+  stats.team_heatmaps?.team2 ||
+  clipHeatmap(clip, 2) ||
+  `/data/${clip.clip_id}_heatmap_team2.png`;
+
+const passing = normalizedStats.passing;
+const passSummary = {
+  team1Passes:
+    passing?.team1_passes ?? passing?.summary?.team1_passes ?? passing?.totals?.team1_passes ?? null,
+  team2Passes:
+    passing?.team2_passes ?? passing?.summary?.team2_passes ?? passing?.totals?.team2_passes ?? null,
+  completion:
+    passing?.completion_rate ?? passing?.summary?.completion_rate ?? passing?.totals?.completion_rate ?? null,
+};
+const normalizedCompletion =
+  passSummary.completion === null
+    ? null
+    : safeNumber(passSummary.completion) <= 1
+      ? safeNumber(passSummary.completion) * 100
+      : safeNumber(passSummary.completion);
+
+const topLinks =
+  passing?.top_links ||
+  passing?.links ||
+  passing?.combinations ||
+  passing?.summary?.top_links ||
+  [];
+
+const videoSrc = clipVideo(clip);
+const posterSrc = clipThumbnail(clip);
 ---
 
-<BaseLayout title={clip.title}>
-  <a href={`${base}`} class="back-link">&larr; Back to clips</a>
-  <h2 class="clip-heading">{clip.title}</h2>
-  <VideoPlayer
-    src={clip.video_url}
-    poster={`${base}${clip.thumbnail_url.replace(/^\//, '')}`}
-    title={clip.title}
-  />
-  <section class="stats-section">
-    <h3>Match Statistics</h3>
-    <PossessionBar team1Pct={t1Pct} team2Pct={t2Pct} />
-    <PlayerStatsTable team1Players={team1Players} team2Players={team2Players} />
+<BaseLayout
+  title={`Korner Flags | ${clipTitle(clip)}`}
+  description={`Match analysis room for ${clipTitle(clip)}.`}
+  activeNav="matches"
+>
+  <div class="page analysis-page">
+    <section class="analysis-header surface-card">
+      <div>
+        <a class="analysis-back" href={`${import.meta.env.BASE_URL}matches/`}>Back to past matches</a>
+        <h1 class="display">{clipTitle(clip)}</h1>
+        <p>{clipSubtitle(clip)}. Open the annotated sequence first, then move into the supporting tactical layers.</p>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-card">
+          <span>Possession leader</span>
+          <strong>{possessionLeader}</strong>
+          <p class="mono">{Math.max(team1Pct, team2Pct).toFixed(1)}%</p>
+        </div>
+        <div class="metric-card">
+          <span>Tracked players</span>
+          <strong>{activePlayers}</strong>
+          <p>Movement totals and team heatmaps are available in this room.</p>
+        </div>
+        <div class="metric-card">
+          <span>Distance logged</span>
+          <strong>{formatDistance(totalDistance)}</strong>
+          <p>{topRunner ? `Top runner: #${topRunner.player_id}` : "Top runner pending"}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="video-stage">
+      <div class="video-stage-head">
+        <div>
+          <span class="eyebrow">Analysis room</span>
+          <h2 class="display">Video first, numbers second.</h2>
+        </div>
+        <p>
+          This stage is designed for meetings: the clip stays central, while the analytics remain
+          available without overwhelming the room.
+        </p>
+      </div>
+
+      <VideoPlayer src={videoSrc} poster={posterSrc} title={clipTitle(clip)} />
+    </section>
+
+    <section class="analysis-grid">
+      <PossessionBar
+        team1Label={team1Label}
+        team2Label={team2Label}
+        team1Pct={team1Pct}
+        team2Pct={team2Pct}
+      />
+
+      <section class="surface-card passing-card">
+        <div class="passing-head">
+          <div>
+            <p class="panel-kicker">Passing review</p>
+            <h3>Built into the room, with honest coverage</h3>
+          </div>
+          <p>
+            Passing is treated as a first-class surface in the product design, but current demo
+            rooms only show tagged pass numbers when that data is actually present.
+          </p>
+        </div>
+
+        {passSummary.team1Passes !== null || passSummary.team2Passes !== null ? (
+          <>
+            <div class="passing-metrics">
+              <div>
+                <span>{team1Label}</span>
+                <strong class="mono">{passSummary.team1Passes ?? "—"}</strong>
+              </div>
+              <div>
+                <span>{team2Label}</span>
+                <strong class="mono">{passSummary.team2Passes ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Completion</span>
+                <strong class="mono">
+                  {normalizedCompletion !== null ? `${normalizedCompletion.toFixed(1)}%` : "—"}
+                </strong>
+              </div>
+            </div>
+
+            <div class="passing-links">
+              {Array.isArray(topLinks) && topLinks.length > 0 ? (
+                topLinks.slice(0, 3).map((link) => (
+                  <article>
+                    <p>Combination</p>
+                    <h4>
+                      {link.label ||
+                        `${link.from_player_id ?? link.from ?? "?"} to ${link.to_player_id ?? link.to ?? "?"}`}
+                    </h4>
+                    <span class="mono">{link.count ?? link.total ?? "—"} linked actions</span>
+                  </article>
+                ))
+              ) : (
+                <article class="passing-empty">
+                  <p>Current state</p>
+                  <h4>Pass counts are available, but link-level context is still sparse in this clip.</h4>
+                  <span>Design keeps the space ready for richer tactical tagging.</span>
+                </article>
+              )}
+            </div>
+          </>
+        ) : (
+          <div class="passing-empty full">
+            <p>Current state</p>
+            <h4>Passing tags are not available in this demo clip yet.</h4>
+            <span>
+              The UI keeps the tactical slot ready without pretending incomplete passing models are
+              already coach-ready.
+            </span>
+          </div>
+        )}
+      </section>
+    </section>
+
+    <PlayerStatsTable
+      team1Players={team1Players}
+      team2Players={team2Players}
+      team1Label={team1Label}
+      team2Label={team2Label}
+    />
+
+    <section class="surface-card heatmap-card">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">Heatmaps</span>
+          <h2>Team movement with a more deliberate frame</h2>
+        </div>
+        <p>
+          Heatmaps are treated as tactical context rather than dumped image outputs, with a darker
+          stage and clear comparison language.
+        </p>
+      </div>
+
+      <div class="heatmap-grid">
+        <article class="heatmap-panel">
+          <div class="heatmap-panel-head">
+            <h3>{team1Label}</h3>
+            <span>Attacking and coverage footprint</span>
+          </div>
+          <div class="heatmap-frame">
+            <img src={withBase(heatmapTeam1)} alt={`${team1Label} team heatmap`} loading="lazy" />
+          </div>
+        </article>
+
+        <article class="heatmap-panel">
+          <div class="heatmap-panel-head">
+            <h3>{team2Label}</h3>
+            <span>Attacking and coverage footprint</span>
+          </div>
+          <div class="heatmap-frame">
+            <img src={withBase(heatmapTeam2)} alt={`${team2Label} team heatmap`} loading="lazy" />
+          </div>
+        </article>
+      </div>
+
+      <div class="heat-legend">
+        <span style="background: var(--heat-0)"></span>
+        <span style="background: var(--heat-1)"></span>
+        <span style="background: var(--heat-2)"></span>
+        <span style="background: var(--heat-3)"></span>
+        <span style="background: var(--heat-4)"></span>
+        <span style="background: var(--heat-5)"></span>
+      </div>
+    </section>
+
     <ComingSoonCards />
-  </section>
-  <section class="heatmaps-section">
-    <h3>Team Heatmaps</h3>
-    <p class="heatmaps-subtitle">Where each team spent most of their time on the pitch</p>
-    <div class="heatmaps-grid">
-      <div class="heatmap-col">
-        <h4 class="team-label team1-label">Team 1</h4>
-        <img
-          src={`${base}${clip.heatmap_team1_url.replace(/^\//, '')}`}
-          alt="Team 1 positional heatmap — pitch coverage density for this match"
-          class="heatmap-img"
-          loading="lazy"
-        />
-      </div>
-      <div class="heatmap-col">
-        <h4 class="team-label team2-label">Team 2</h4>
-        <img
-          src={`${base}${clip.heatmap_team2_url.replace(/^\//, '')}`}
-          alt="Team 2 positional heatmap — pitch coverage density for this match"
-          class="heatmap-img"
-          loading="lazy"
-        />
-      </div>
-    </div>
-    <p class="disclaimer-text">AI-estimated from video — values are approximate</p>
-  </section>
+  </div>
 </BaseLayout>
 
 <style>
-  .back-link {
-    display: inline-block;
-    margin-bottom: 1.5rem;
-    font-size: 0.9rem;
-    color: #0066cc;
-    text-decoration: none;
-  }
-
-  .back-link:hover {
-    text-decoration: underline;
-  }
-
-  .clip-heading {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: #1d1d1f;
-  }
-
-  .stats-section {
-    margin-top: 2.5rem;
-    padding: 2rem;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-
-  .stats-section h3 {
-    font-size: 1.15rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-  }
-
-  .heatmaps-section {
-    margin-top: 2.5rem;
-    padding: 2rem;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-
-  .heatmaps-section h3 {
-    font-size: 1.15rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-  }
-
-  .heatmaps-subtitle {
-    font-size: 0.95rem;
-    color: #6e6e73;
-    margin-bottom: 1.25rem;
-  }
-
-  .heatmaps-grid {
+  .analysis-page {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    gap: 28px;
   }
 
-  @media (max-width: 640px) {
-    .heatmaps-grid {
+  .analysis-header {
+    display: grid;
+    gap: 24px;
+    padding: 30px;
+  }
+
+  .analysis-back {
+    display: inline-flex;
+    margin-bottom: 14px;
+    color: var(--steel-700);
+    font-size: 0.94rem;
+    font-weight: 800;
+  }
+
+  .analysis-header h1 {
+    margin: 0;
+    color: var(--ink-900);
+    font-size: clamp(2.6rem, 5vw, 4.2rem);
+    line-height: 0.98;
+  }
+
+  .analysis-header > div:first-child > p {
+    max-width: 720px;
+    margin: 18px 0 0;
+    color: var(--slate-600);
+    line-height: 1.75;
+  }
+
+  .analysis-header .metric-grid {
+    margin-top: 4px;
+  }
+
+  .video-stage {
+    display: grid;
+    gap: 22px;
+    padding: 30px;
+    border-radius: 32px;
+    background:
+      radial-gradient(circle at top right, rgba(107, 160, 216, 0.18), transparent 28%),
+      linear-gradient(135deg, var(--ink-900), var(--ink-700));
+    color: white;
+  }
+
+  .video-stage-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .video-stage-head h2 {
+    margin: 14px 0 0;
+    color: white;
+    font-size: clamp(2rem, 4vw, 3.1rem);
+    line-height: 0.98;
+  }
+
+  .video-stage-head p {
+    margin: 0;
+    max-width: 420px;
+    color: rgba(255, 255, 255, 0.72);
+    line-height: 1.7;
+  }
+
+  .analysis-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .passing-card {
+    padding: 26px;
+  }
+
+  .passing-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 20px;
+  }
+
+  .panel-kicker {
+    margin: 0 0 8px;
+    color: var(--steel-700);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .passing-head h3 {
+    margin: 0;
+    color: var(--ink-900);
+    font-family: var(--font-display);
+    font-size: 1.65rem;
+    letter-spacing: -0.03em;
+  }
+
+  .passing-head p:last-child {
+    margin: 0;
+    max-width: 360px;
+    color: var(--slate-600);
+    line-height: 1.65;
+  }
+
+  .passing-metrics {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .passing-metrics div,
+  .passing-links article,
+  .passing-empty {
+    padding: 18px;
+    border-radius: 18px;
+    border: var(--border-subtle);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 244, 248, 0.88));
+  }
+
+  .passing-metrics span,
+  .passing-links p,
+  .passing-empty p {
+    display: block;
+    margin: 0 0 8px;
+    color: var(--steel-700);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .passing-metrics strong {
+    color: var(--ink-900);
+    font-size: 1.5rem;
+  }
+
+  .passing-links {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 16px;
+  }
+
+  .passing-links h4,
+  .passing-empty h4 {
+    margin: 0;
+    color: var(--ink-900);
+    font-size: 1.02rem;
+    line-height: 1.55;
+  }
+
+  .passing-links span,
+  .passing-empty span {
+    display: inline-block;
+    margin-top: 12px;
+    color: var(--slate-500);
+    line-height: 1.55;
+  }
+
+  .passing-empty.full {
+    margin-top: 0;
+  }
+
+  .heatmap-card {
+    padding: 28px;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .heatmap-panel {
+    padding: 18px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(22, 39, 61, 0.96), rgba(11, 22, 38, 0.98));
+    color: white;
+    box-shadow: 0 24px 48px rgba(11, 22, 38, 0.14);
+  }
+
+  .heatmap-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .heatmap-panel-head h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    letter-spacing: -0.03em;
+  }
+
+  .heatmap-panel-head span {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.84rem;
+    font-weight: 600;
+  }
+
+  .heatmap-frame {
+    overflow: hidden;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .heatmap-frame img {
+    width: 100%;
+  }
+
+  .heat-legend {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .heat-legend span {
+    height: 10px;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 980px) {
+    .analysis-grid,
+    .heatmap-grid,
+    .passing-links,
+    .passing-metrics {
       grid-template-columns: 1fr;
     }
-  }
 
-  .team-label {
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-  }
-
-  .team1-label {
-    color: #0071e3;
-  }
-
-  .team2-label {
-    color: #e8732a;
-  }
-
-  .heatmap-img {
-    width: 100%;
-    display: block;
-    border-radius: 8px;
-  }
-
-  .disclaimer-text {
-    margin-top: 1rem;
-    font-size: 0.8rem;
-    color: #86868b;
+    .video-stage-head,
+    .passing-head {
+      flex-direction: column;
+      align-items: stretch;
+    }
   }
 </style>

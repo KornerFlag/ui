@@ -1,0 +1,335 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ClipCard from "../components/ClipCard.astro";
+import manifestData from "../../public/data/manifest.json";
+import { clipTitle, formatDistance, normalizeStats, safeNumber } from "../lib/site";
+
+const clips = manifestData.clips || [];
+const featuredClip = clips[0];
+const featuredStatsModule = featuredClip
+  ? await import(`../../public/data/${featuredClip.clip_id}_annotated_stats.json`)
+  : { default: {} };
+const featuredStats = featuredStatsModule.default || featuredStatsModule;
+const featuredAnalysis = normalizeStats(featuredStats, featuredClip);
+const featuredHref = featuredClip ? `${import.meta.env.BASE_URL}clips/${featuredClip.clip_id}/` : "#";
+const clipCount = clips.length;
+const footageMinutes = Math.round(
+  clips.reduce((total: number, clip: Record<string, any>) => total + safeNumber(clip.duration_seconds), 0) /
+    60,
+);
+
+const featuredPlayers = featuredAnalysis.allPlayers;
+const activePlayers = new Set(featuredPlayers.map((player) => player.player_id)).size;
+const topRunner =
+  [...featuredPlayers].sort(
+    (left, right) => safeNumber(right.total_distance_km) - safeNumber(left.total_distance_km),
+  )[0] || null;
+const possessionA = featuredAnalysis.team1Pct;
+const possessionB = featuredAnalysis.team2Pct;
+---
+
+<BaseLayout
+  title="Korner Flags | Product page"
+  description="Video-first soccer analytics designed for coaches, analysts, and investor demos."
+  activeNav="product"
+>
+  <div class="page homepage">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Coach-facing soccer analytics</span>
+        <h1 class="display">Record the match once. Review the tactical story with clarity.</h1>
+        <p>
+          Korner Flags turns preprocessed match footage into a professional review room built around
+          annotated video, trustworthy summary stats, and presentation-ready tactical context.
+        </p>
+
+        <div class="button-row">
+          <a class="button-primary" href={featuredHref}>Open featured analysis</a>
+          <a class="button-secondary" href={`${import.meta.env.BASE_URL}dashboard/`}>View dashboard</a>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-card">
+            <span>Demo matches</span>
+            <strong>{clipCount}</strong>
+            <p>Available review rooms for staff demos, recruiting conversations, and investor walkthroughs.</p>
+          </div>
+          <div class="metric-card">
+            <span>Library footage</span>
+            <strong>{footageMinutes} min</strong>
+            <p>Preprocessed clips ready to open immediately with no analyst setup during the meeting.</p>
+          </div>
+          <div class="metric-card">
+            <span>Tracked players</span>
+            <strong>{activePlayers}</strong>
+            <p>Current demo rooms highlight movement, possession, and heatmaps without overclaiming calibration.</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="hero-panel">
+        <p class="hero-panel-kicker">Featured room</p>
+        <h2>{clipTitle(featuredClip)}</h2>
+        <p>
+          Start with the annotated video, then use possession, running output, and heatmaps to keep
+          the conversation grounded in what the match actually showed.
+        </p>
+
+        <dl>
+          <div>
+            <dt>Possession edge</dt>
+            <dd class="mono">{Math.max(possessionA, possessionB).toFixed(1)}%</dd>
+          </div>
+          <div>
+            <dt>Top runner</dt>
+            <dd>{topRunner ? `#${topRunner.player_id}` : "Pending"}</dd>
+          </div>
+          <div>
+            <dt>Distance lead</dt>
+            <dd>{topRunner ? formatDistance(topRunner.total_distance_km) : "Pending"}</dd>
+          </div>
+        </dl>
+
+        <a class="hero-link" href={featuredHref}>Enter match room</a>
+      </aside>
+    </section>
+
+    <section class="surface-card product-surface">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">Product flow</span>
+          <h2>One system from landing page to analysis</h2>
+        </div>
+        <p>
+          The initial product template covers the marketing story, the logged-in dashboard, the past
+          matches archive, the analysis room, and the checkout path for paid review services.
+        </p>
+      </div>
+
+      <div class="surface-grid">
+        <article>
+          <p>Dashboard</p>
+          <h3>Recent analyses, team context, and the next match to review.</h3>
+        </article>
+        <article>
+          <p>Past matches</p>
+          <h3>Archive views for staff who need to scan multiple games quickly.</h3>
+        </article>
+        <article>
+          <p>Analysis room</p>
+          <h3>Video-first review with possession, running output, passing space, and elegant heatmaps.</h3>
+        </article>
+        <article>
+          <p>Checkout</p>
+          <h3>Clean package selection that feels integrated with the rest of the platform.</h3>
+        </article>
+      </div>
+    </section>
+
+    <section class="library-section">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">Match library</span>
+          <h2>Available demo rooms</h2>
+        </div>
+        <p>
+          Each room is organized for coaches first: open the clip, watch the sequence, then move
+          into supporting numbers only where they are useful and credible.
+        </p>
+      </div>
+
+      <div class="library-grid">
+        {clips.map((clip) => (
+          <ClipCard clip={clip} />
+        ))}
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .homepage {
+    display: grid;
+    gap: 32px;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.8fr);
+    gap: 24px;
+    padding: 34px;
+    border-radius: 34px;
+    background:
+      radial-gradient(circle at top right, rgba(107, 160, 216, 0.24), transparent 28%),
+      linear-gradient(135deg, var(--ink-900), var(--ink-700));
+    color: white;
+    box-shadow: 0 30px 60px rgba(11, 22, 38, 0.16);
+  }
+
+  .hero-copy h1 {
+    max-width: 12ch;
+    margin: 18px 0 0;
+    font-size: clamp(3rem, 6vw, 5.4rem);
+    line-height: 0.95;
+  }
+
+  .hero-copy p {
+    max-width: 720px;
+    margin: 22px 0 0;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 1.05rem;
+    line-height: 1.75;
+  }
+
+  .hero-copy .button-row {
+    margin-top: 28px;
+  }
+
+  .hero-copy .metric-grid {
+    margin-top: 28px;
+  }
+
+  .hero-copy .metric-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+  }
+
+  .hero-copy .metric-card span,
+  .hero-copy .metric-card p {
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .hero-copy .metric-card strong {
+    color: white;
+  }
+
+  .hero-panel {
+    align-self: stretch;
+    padding: 26px;
+    border-radius: 28px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .hero-panel-kicker {
+    margin: 0 0 12px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .hero-panel h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 2rem;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-panel p {
+    margin: 14px 0 0;
+    color: rgba(255, 255, 255, 0.72);
+    line-height: 1.7;
+  }
+
+  .hero-panel dl {
+    display: grid;
+    gap: 14px;
+    margin: 22px 0 0;
+  }
+
+  .hero-panel dl div {
+    padding: 14px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .hero-panel dt {
+    color: rgba(255, 255, 255, 0.64);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .hero-panel dd {
+    margin: 8px 0 0;
+    color: white;
+    font-size: 1.2rem;
+  }
+
+  .hero-link {
+    display: inline-flex;
+    margin-top: 20px;
+    color: white;
+    font-weight: 800;
+  }
+
+  .product-surface,
+  .library-section {
+    padding: 30px;
+  }
+
+  .surface-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .surface-grid article {
+    padding: 22px;
+    border-radius: 22px;
+    border: var(--border-subtle);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(240, 244, 248, 0.9));
+  }
+
+  .surface-grid p {
+    margin: 0 0 10px;
+    color: var(--steel-700);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .surface-grid h3 {
+    margin: 0;
+    color: var(--ink-900);
+    font-size: 1.1rem;
+    line-height: 1.55;
+  }
+
+  .library-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 1100px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+
+    .surface-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 760px) {
+    .hero,
+    .product-surface,
+    .library-section {
+      padding: 22px;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(2.5rem, 12vw, 4rem);
+    }
+
+    .library-grid,
+    .surface-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

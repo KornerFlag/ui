@@ -1,35 +1,30 @@
 ---
-interface Props {
-  src: string;
-  poster: string;
-  title: string;
-}
+import { withBase } from "../lib/site";
 
-const { src, poster, title } = Astro.props;
+const { src, poster = "", title = "Match video" } = Astro.props;
+const resolvedSrc = withBase(src);
+const resolvedPoster = withBase(poster);
 ---
 
-<div class="player-wrapper">
-  <video id="plyr-player" playsinline controls data-poster={poster} aria-label={title}>
-    <source src={src} type="video/mp4" />
+<div class="video-shell">
+  <video controls playsinline preload="metadata" poster={resolvedPoster}>
+    <source src={resolvedSrc} />
+    Your browser does not support embedded video playback.
   </video>
 </div>
 
-<script>
-  import Plyr from 'plyr';
-  import 'plyr/dist/plyr.css';
-
-  const player = new Plyr('#plyr-player', {
-    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
-  });
-</script>
-
 <style>
-  .player-wrapper {
-    width: 100%;
-    max-width: 960px;
-    margin: 0 auto;
-    border-radius: 12px;
+  .video-shell {
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: linear-gradient(180deg, rgba(11, 22, 38, 0.54), rgba(11, 22, 38, 0.78));
+    box-shadow: 0 28px 54px rgba(0, 0, 0, 0.24);
+  }
+
+  video {
+    width: 100%;
+    display: block;
+    background: #08111c;
   }
 </style>

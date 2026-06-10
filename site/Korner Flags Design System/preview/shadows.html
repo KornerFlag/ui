@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--surface-1);font-family:var(--font-ui);padding:32px 30px}
+  .row{display:flex;gap:24px}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .box{width:96px;height:64px;background:var(--surface-0);border-radius:var(--radius-md)}
+  .lab{font-family:var(--font-mono);font-size:11px;color:var(--fg-4)}
+</style></head>
+<body>
+  <div class="row">
+    <div class="cell"><div class="box" style="box-shadow:var(--shadow-xs)"></div><span class="lab">xs</span></div>
+    <div class="cell"><div class="box" style="box-shadow:var(--shadow-sm)"></div><span class="lab">sm · card</span></div>
+    <div class="cell"><div class="box" style="box-shadow:var(--shadow-md)"></div><span class="lab">md · hover</span></div>
+    <div class="cell"><div class="box" style="box-shadow:var(--shadow-lg)"></div><span class="lab">lg · overlay</span></div>
+    <div class="cell"><div class="box" style="background:var(--ink-800);box-shadow:var(--shadow-ink)"></div><span class="lab">ink · hero</span></div>
+  </div>
+</body></html>

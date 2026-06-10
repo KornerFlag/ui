@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sketch 2 — Editorial Split (v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-900:#0B1626; --ink-700:#16273D; --steel-700:#1F4E82; --steel-600:#2C6BB0; --steel-400:#6BA0D8;
+    --slate-600:#4A5A70; --slate-500:#677789; --line:rgba(22,39,61,.1);
+    --font-display:'Fraunces',Georgia,serif; --font-body:'Inter',system-ui,sans-serif; --font-mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font-body);color:#16202E;
+    background:radial-gradient(1200px 500px at 80% -5%,rgba(197,218,240,.5),transparent 60%),linear-gradient(180deg,#f7fafc,#eaf1f7)}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px 26px 60px}
+  /* top bar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 12px 14px;border-radius:18px;
+    background:rgba(11,22,38,.96);color:#fff;margin-bottom:34px;box-shadow:0 16px 36px rgba(11,22,38,.16)}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand img{width:40px;height:40px;border-radius:11px;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+  .brand b{font-weight:700;letter-spacing:-.02em;font-size:1.02rem}
+  .brand small{display:block;color:rgba(255,255,255,.55);font-size:.74rem;font-weight:500}
+  .topbar nav{display:flex;gap:4px;font-size:.9rem;color:rgba(255,255,255,.74)}
+  .topbar nav a{padding:8px 13px;border-radius:999px;cursor:pointer}
+  .topbar nav a:hover{background:rgba(255,255,255,.1);color:#fff}
+  .topbar .book{background:#fff;color:var(--ink-900);font-weight:600;padding:9px 16px;border-radius:999px;font-size:.9rem}
+  /* hero */
+  .hero{display:grid;grid-template-columns:0.92fr 1.18fr;gap:46px;align-items:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--steel-700);background:rgba(61,127,196,.1);padding:7px 12px;border-radius:999px}
+  .dot-live{width:7px;height:7px;border-radius:50%;background:#19b562;box-shadow:0 0 9px #19b562;animation:bl 1.6s infinite}
+  @keyframes bl{50%{opacity:.35}}
+  h1{font-family:var(--font-display);font-weight:600;font-size:clamp(3rem,4.8vw,4.5rem);line-height:1;letter-spacing:-.018em;margin:20px 0 0;color:var(--ink-900)}
+  h1 em{font-style:italic;color:var(--steel-600)}
+  .sub{margin:20px 0 0;max-width:440px;color:var(--slate-600);line-height:1.75;font-size:1.07rem}
+  .cta{display:flex;gap:12px;margin-top:28px}
+  .btn{display:inline-flex;align-items:center;min-height:52px;padding:0 24px;border-radius:999px;font-weight:600;font-size:1rem;cursor:pointer}
+  .btn-p{background:var(--ink-900);color:#fff;box-shadow:0 14px 30px rgba(11,22,38,.22)}
+  .btn-s{border:1px solid rgba(31,78,130,.2);color:var(--steel-700);background:#fff}
+  .stats{display:flex;gap:34px;margin-top:36px}
+  .stat .v{font-family:var(--font-display);font-size:2.15rem;letter-spacing:-.02em;color:var(--ink-900)}
+  .stat .k{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--slate-500);margin-top:2px}
+  /* pitch card */
+  .card{position:relative;border-radius:26px;overflow:hidden;background:linear-gradient(165deg,#0c2438,#081a2b);
+    border:1px solid rgba(255,255,255,.06);box-shadow:0 40px 80px rgba(7,20,34,.4);padding:16px}
+  .card-head{display:flex;align-items:center;justify-content:space-between;color:#fff;padding:8px 8px 14px}
+  .card-head .lab{display:flex;align-items:center;gap:9px}
+  .card-head h3{margin:0;font-family:var(--font-display);font-weight:500;font-size:1.12rem}
+  .card-head .tag{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:#7fd0a0;
+    border:1px solid rgba(127,208,160,.3);border-radius:6px;padding:4px 8px}
+  .toggle{display:flex;gap:4px;background:rgba(255,255,255,.07);border-radius:999px;padding:4px}
+  .toggle button{border:0;background:transparent;color:rgba(255,255,255,.66);font-family:var(--font-body);font-weight:600;
+    font-size:.8rem;padding:7px 13px;border-radius:999px;cursor:pointer}
+  .toggle button.on{background:#fff;color:var(--ink-900)}
+  .canvas-box{position:relative;aspect-ratio:16/10;border-radius:16px;overflow:hidden;background:#0a1f17}
+  canvas{position:absolute;inset:0;width:100%;height:100%}
+  /* live readouts under pitch */
+  .ticker{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 6px 4px}
+  .tk{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:11px 13px}
+  .tk .k{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+  .tk .v{font-family:var(--font-mono);font-weight:600;font-size:1.12rem;color:#fff;margin-top:3px}
+  .tk .v small{font-size:.7rem;color:rgba(255,255,255,.55)}
+  /* possession bar */
+  .poss{padding:10px 6px 2px}
+  .poss-bar{height:9px;border-radius:999px;overflow:hidden;display:flex}
+  .poss-bar i{display:block;height:100%;transition:width .3s ease}
+  .poss-l{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.7rem;color:rgba(255,255,255,.6);margin-top:7px}
+  .legend{display:flex;align-items:center;gap:14px;color:rgba(255,255,255,.62);font-size:.74rem;padding:10px 6px 2px}
+  .legend .swatch{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px}
+  @media(max-width:920px){.hero{grid-template-columns:1fr;gap:28px}.ticker{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <img src="logo.png" alt="Korner Flags" />
+        <div><b>Korner&nbsp;Flags</b><small>Match intelligence</small></div>
+      </div>
+      <nav><a>Product</a><a>Match rooms</a><a>Heatmaps</a><a>Pricing</a></nav>
+      <a class="book">Book analysis</a>
+    </div>
+
+    <div class="hero">
+      <div>
+        <span class="eyebrow"><span class="dot-live"></span> Live pass tracking</span>
+        <h1>Read the game<br>the way the <em>data</em> sees it.</h1>
+        <p class="sub">Korner Flags follows every pass, run, and press — then turns the match into a clean tactical map you can read in seconds. No spreadsheets, no setup.</p>
+        <div class="cta">
+          <a class="btn btn-p">Open featured analysis</a>
+          <a class="btn btn-s">See past matches</a>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="v" id="s-poss">62.1%</div><div class="k">Possession edge</div></div>
+          <div class="stat"><div class="v" id="s-pass">0</div><div class="k">Passes tracked</div></div>
+          <div class="stat"><div class="v" id="s-acc">100%</div><div class="k">Pass accuracy</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="lab"><h3>Tactical board</h3><span class="tag">● Tracking</span></div>
+          <div class="toggle">
+            <button data-t="home" class="on">Heat: Home</button>
+            <button data-t="away">Away</button>
+            <button data-t="both">Both</button>
+          </div>
+        </div>
+        <div class="canvas-box"><canvas id="pitch"></canvas></div>
+
+        <div class="poss">
+          <div class="poss-bar"><i id="ph" style="width:62%;background:#5C9CE6"></i><i id="pa" style="width:38%;background:#E8C76B"></i></div>
+          <div class="poss-l"><span id="lh">Home · 62.1%</span><span id="la">37.9% · Away</span></div>
+        </div>
+
+        <div class="ticker">
+          <div class="tk"><div class="k">Last pass</div><div class="v" id="t-last">—</div></div>
+          <div class="tk"><div class="k">Passes</div><div class="v" id="t-pass">0</div></div>
+          <div class="tk"><div class="k">Accuracy</div><div class="v" id="t-acc">100<small>%</small></div></div>
+          <div class="tk"><div class="k">Phase</div><div class="v" id="t-phase">Build-up</div></div>
+        </div>
+
+        <div class="legend">
+          <span><span class="swatch" style="background:#5C9CE6"></span>Home</span>
+          <span><span class="swatch" style="background:#E8C76B"></span>Away</span>
+          <span style="margin-left:auto;font-family:var(--font-mono)">positions.json · live</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="match-anim.js"></script>
+<script>
+  const anim = new MatchAnim(document.getElementById('pitch'), { heat:'home' });
+  document.querySelectorAll('.toggle button').forEach(b=>{
+    b.onclick=()=>{ document.querySelectorAll('.toggle button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); anim.setHeat(b.dataset.t); };
+  });
+  const $ = id => document.getElementById(id);
+  anim.onTick = (s)=>{
+    $('ph').style.width = s.poss[0]+'%'; $('pa').style.width = s.poss[1]+'%';
+    $('lh').textContent = 'Home · '+s.poss[0]+'%'; $('la').textContent = s.poss[1]+'% · Away';
+    $('s-poss').textContent = Math.max(s.poss[0],s.poss[1])+'%';
+    $('s-pass').textContent = s.passes; $('t-pass').textContent = s.passes;
+    $('s-acc').textContent = s.acc+'%'; $('t-acc').innerHTML = s.acc+'<small>%</small>';
+    $('t-last').textContent = s.lastPass;
+  };
+</script>
+</body>
+</html>

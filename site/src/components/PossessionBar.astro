@@ -1,86 +1,125 @@
 ---
-const { team1Pct, team2Pct } = Astro.props;
+const {
+  team1Label = "Team 1",
+  team2Label = "Team 2",
+  team1Pct = 50,
+  team2Pct = 50,
+} = Astro.props;
 ---
 
-<div class="possession-section">
-  <h4>Possession</h4>
-  <div class="possession-bar-wrap">
-    <span class="poss-label team1-label">
-      Team 1
-      <span class="poss-pct">{team1Pct}%</span>
-    </span>
-    <div
-      class="possession-bar"
-      role="img"
-      aria-label={`Team 1 possession ${team1Pct} percent, Team 2 possession ${team2Pct} percent`}
-    >
-      <div class="seg seg-team1" style={`width: ${team1Pct}%`}></div>
-      <div class="seg seg-team2" style={`width: ${team2Pct}%`}></div>
+<section class="possession-card surface-card">
+  <div class="possession-head">
+    <div>
+      <p class="panel-kicker">Possession</p>
+      <h3>Ball control at a glance</h3>
     </div>
-    <span class="poss-label team2-label">
-      Team 2
-      <span class="poss-pct">{team2Pct}%</span>
-    </span>
+    <p>Use this as conversation context, not as a replacement for watching the sequence.</p>
   </div>
-  <p class="disclaimer">AI-estimated ±5%</p>
-</div>
+
+  <div class="possession-track" aria-label="Team possession split">
+    <div class="possession-fill team-1" style={`width: ${team1Pct}%`}></div>
+    <div class="possession-fill team-2" style={`width: ${team2Pct}%`}></div>
+  </div>
+
+  <div class="possession-grid">
+    <div class="possession-team">
+      <span>{team1Label}</span>
+      <strong class="mono">{team1Pct.toFixed(1)}%</strong>
+    </div>
+    <div class="possession-team">
+      <span>{team2Label}</span>
+      <strong class="mono">{team2Pct.toFixed(1)}%</strong>
+    </div>
+  </div>
+</section>
 
 <style>
-  h4 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #1d1d1f;
-    margin-bottom: 8px;
+  .possession-card {
+    padding: 26px;
   }
 
-  .possession-bar-wrap {
+  .possession-head {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 24px;
   }
 
-  .possession-bar {
-    display: flex;
-    flex: 1;
-    height: 40px;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  .seg-team1 {
-    background: #0071e3;
-  }
-
-  .seg-team2 {
-    background: #e8732a;
-  }
-
-  .poss-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #1d1d1f;
-    white-space: nowrap;
-    min-width: 80px;
-  }
-
-  .team1-label {
-    text-align: right;
-  }
-
-  .team2-label {
-    text-align: left;
-  }
-
-  .poss-pct {
-    display: block;
-    font-size: 1.1rem;
-  }
-
-  .disclaimer {
-    margin-top: 8px;
+  .panel-kicker {
+    margin: 0 0 8px;
+    color: var(--steel-700);
     font-size: 0.8rem;
-    color: #86868b;
-    text-align: center;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .possession-head h3 {
+    margin: 0;
+    color: var(--ink-900);
+    font-family: var(--font-display);
+    font-size: 1.65rem;
+    letter-spacing: -0.03em;
+  }
+
+  .possession-head p:last-child {
+    margin: 0;
+    max-width: 340px;
+    color: var(--slate-600);
+    line-height: 1.6;
+  }
+
+  .possession-track {
+    display: flex;
+    height: 18px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--slate-100);
+  }
+
+  .possession-fill.team-1 {
+    background: linear-gradient(90deg, var(--steel-600), var(--steel-400));
+  }
+
+  .possession-fill.team-2 {
+    background: linear-gradient(90deg, #9db2c8, #d7e3ef);
+  }
+
+  .possession-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .possession-team {
+    padding: 16px;
+    border-radius: 18px;
+    background: var(--surface-1);
+  }
+
+  .possession-team span {
+    display: block;
+    color: var(--slate-500);
+    font-weight: 700;
+  }
+
+  .possession-team strong {
+    display: block;
+    margin-top: 8px;
+    color: var(--ink-900);
+    font-size: 1.3rem;
+  }
+
+  @media (max-width: 760px) {
+    .possession-head {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .possession-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

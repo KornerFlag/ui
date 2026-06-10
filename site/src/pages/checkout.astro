@@ -1,0 +1,210 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import manifestData from "../../public/data/manifest.json";
+import { clipTitle, formatDuration } from "../lib/site";
+
+const featuredClip = (manifestData.clips || [])[0];
+
+const plans = [
+  {
+    name: "Single match review",
+    price: "$49",
+    cadence: "per match",
+    note: "For staff who need one presentation-ready analysis room.",
+  },
+  {
+    name: "Team package",
+    price: "$149",
+    cadence: "per batch",
+    note: "For clubs or staff groups working through several matches at once.",
+  },
+  {
+    name: "Custom workflow",
+    price: "Talk to us",
+    cadence: "enterprise",
+    note: "For recurring ingest, custom reporting, or recruiting-heavy review needs.",
+  },
+];
+---
+
+<BaseLayout
+  title="Korner Flags | Checkout"
+  description="Package selection and checkout experience for Korner Flags."
+  activeNav="checkout"
+>
+  <div class="page checkout-page">
+    <section class="checkout-hero">
+      <div>
+        <span class="eyebrow">Checkout</span>
+        <h1 class="display">A payment step that feels like part of the product.</h1>
+        <p>
+          The initial workflow includes a credible purchase surface for paid analysis packages
+          without breaking the design language of the rest of the platform.
+        </p>
+      </div>
+
+      <aside class="surface-card order-card">
+        <p>Current order</p>
+        <h2>{clipTitle(featuredClip)}</h2>
+        <dl>
+          <div>
+            <dt>Clip duration</dt>
+            <dd class="mono">{formatDuration(featuredClip?.duration_seconds)}</dd>
+          </div>
+          <div>
+            <dt>Delivery</dt>
+            <dd>Analysis room access</dd>
+          </div>
+          <div>
+            <dt>Workflow</dt>
+            <dd>Video review, movement output, possession, heatmaps</dd>
+          </div>
+        </dl>
+      </aside>
+    </section>
+
+    <section class="plan-grid">
+      {plans.map((plan) => (
+        <article class="surface-card plan-card">
+          <p>{plan.name}</p>
+          <h3>{plan.price}</h3>
+          <span>{plan.cadence}</span>
+          <strong>{plan.note}</strong>
+          <a class="button-primary" href={`${import.meta.env.BASE_URL}dashboard/`}>Select package</a>
+        </article>
+      ))}
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .checkout-page {
+    display: grid;
+    gap: 28px;
+  }
+
+  .checkout-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    gap: 20px;
+    padding: 32px;
+    border-radius: 30px;
+    background:
+      radial-gradient(circle at top right, rgba(107, 160, 216, 0.16), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 244, 248, 0.96));
+    border: var(--border-subtle);
+    box-shadow: var(--shadow-card);
+  }
+
+  .checkout-hero h1 {
+    margin: 18px 0 0;
+    color: var(--ink-900);
+    font-size: clamp(2.4rem, 4.8vw, 4rem);
+    line-height: 0.98;
+  }
+
+  .checkout-hero p {
+    margin: 18px 0 0;
+    max-width: 620px;
+    color: var(--slate-600);
+    line-height: 1.75;
+  }
+
+  .order-card {
+    padding: 24px;
+  }
+
+  .order-card > p {
+    margin: 0 0 10px;
+    color: var(--steel-700);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .order-card h2 {
+    margin: 0;
+    color: var(--ink-900);
+    font-family: var(--font-display);
+    font-size: 1.85rem;
+    letter-spacing: -0.03em;
+  }
+
+  .order-card dl {
+    display: grid;
+    gap: 14px;
+    margin: 20px 0 0;
+  }
+
+  .order-card dl div {
+    padding-top: 14px;
+    border-top: 1px solid rgba(22, 39, 61, 0.08);
+  }
+
+  .order-card dt {
+    color: var(--slate-500);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .order-card dd {
+    margin: 7px 0 0;
+    color: var(--slate-700);
+    font-weight: 700;
+  }
+
+  .plan-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .plan-card {
+    display: grid;
+    gap: 12px;
+    padding: 24px;
+  }
+
+  .plan-card p {
+    margin: 0;
+    color: var(--steel-700);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .plan-card h3 {
+    margin: 0;
+    color: var(--ink-900);
+    font-family: var(--font-display);
+    font-size: 2rem;
+    letter-spacing: -0.04em;
+  }
+
+  .plan-card span {
+    color: var(--slate-500);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .plan-card strong {
+    color: var(--slate-700);
+    line-height: 1.65;
+  }
+
+  .plan-card .button-primary {
+    margin-top: 8px;
+    width: fit-content;
+  }
+
+  @media (max-width: 1024px) {
+    .checkout-hero,
+    .plan-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
