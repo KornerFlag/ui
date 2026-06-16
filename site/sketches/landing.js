@@ -1,231 +1,176 @@
-/* ScrollPitch — a scrubbable tactical board for the Korner Flags scroll story.
-   The board is sticky; scroll progress (0..1) drives a single choreographed
-   build-up: ball progresses, passes draw into a network, the attack reaches the
-   final third, a review-clip marker pops, and a heatmap can fade in. In the hero
-   (no scroll yet) it plays a calm idle loop so it always feels alive. */
+/* PitchScene — blue/white tactical pitch that auto-plays a full move:
+   build-up -> defensive challenge -> winger carry -> shot -> GOAL.
+   Realistic markings, shaded players, ball with shadow. The element is rotated
+   by the page on scroll (CSS); this just draws + loops the sequence. */
 
 const L = 105, W = 68;
-const F = {
-  home: [ // attacking -> right
-    ['GK', 7, 34], ['LB', 22, 13], ['LCB', 19, 27], ['RCB', 19, 41], ['RB', 22, 55],
-    ['LCM', 43, 23], ['CM', 41, 34], ['RCM', 43, 45], ['LW', 68, 15], ['ST', 77, 34], ['RW', 68, 53],
-  ].map(([r, x, y], i) => ({ role: r, x, y, num: [1, 3, 5, 6, 2, 8, 4, 10, 11, 9, 7][i] })),
-  away: null,
-};
-F.away = F.home.map(p => ({ role: p.role, x: 105 - p.x, y: p.y, num: p.num }));
+const HOME = [
+  [7, 34, 1], [22, 55, 2], [19, 41, 5], [19, 27, 4], [22, 13, 3],
+  [41, 34, 6], [43, 45, 8], [50, 27, 10], [70, 53, 7], [78, 34, 9], [70, 15, 11],
+].map(([x, y, num]) => ({ x, y, num }));
+const AWAY = HOME.map(p => ({ x: 105 - p.x, y: p.y, num: p.num }));
+const SEQ = [2, 5, 3, 6, 7, 5, 8, 5, 10];
+const CARRY = { x: 88, y: 18 };
+const GOAL = { x: 105.4, y: 33 };
+const ease = t => (t = Math.max(0, Math.min(1, t))) < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const lerp = (a, b, t) => a + (b - a) * t;
 
-const SEQ = [0, 2, 6, 5, 7, 9, 8, 9]; // home indices: build-up chain
-function ease(t) { t = Math.max(0, Math.min(1, t)); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
-function lerp(a, b, t) { return a + (b - a) * t; }
+// timeline windows
+const CHAIN0 = 0.05, CHAIN1 = 0.60, CARRY1 = 0.74, SHOT1 = 0.90, CHAL0 = 0.40, CHAL1 = 0.52;
 
-class ScrollPitch {
+class PitchScene {
   constructor(canvas, opts = {}) {
     this.c = canvas; this.ctx = canvas.getContext('2d');
-    this.o = Object.assign({
-      home: '#5C9CE6', away: '#E8C76B', line: 'rgba(236,244,253,0.6)',
-      grass: ['#236f4d', '#15543a'], heatColor: '#5C9CE6', pad: 30,
-    }, opts);
-    this.GX = 9; this.GY = 14; this.grid = Array.from({ length: this.GX }, () => new Array(this.GY).fill(0));
-    this.scroll = 0; this.heroActive = true; this.actual = 0; this.heatAlpha = 0; this.heatTarget = 0;
-    this.time = 0; this.idle = 0;
+    this.o = Object.assign({ home: '#f4f7fb', away: '#2f6bdc', accent: '#eaf2ff', pad: 4 }, opts);
+    this.t = 0; this.target = 0; this.time = 0; this.trail = []; this.last = performance.now(); this._tmap = {};
+    this.passLabels = []; for (let i = 0; i < SEQ.length - 1; i++) this.passLabels.push(`#${HOME[SEQ[i]].num} → #${HOME[SEQ[i + 1]].num}`);
     this._build();
-    this.last = performance.now();
     this._resize = this._resize.bind(this); this._loop = this._loop.bind(this);
     window.addEventListener('resize', this._resize); this._resize();
     requestAnimationFrame(this._loop);
   }
-  _fp(team, idx, p) { // formation position at progress p
-    const b = F[team][idx], e = ease(p);
-    if (team === 'home') return { x: Math.min(101, b.x + e * 20), y: b.y };
-    return { x: b.x - e * 5, y: b.y + (34 - b.y) * e * 0.22 };
-  }
-  _build() {
-    this.keyP = []; this.keyPt = [];
-    const N = SEQ.length;
-    for (let k = 0; k < N; k++) {
-      const p = 0.06 + 0.78 * (k / (N - 1));
-      this.keyP.push(p); this.keyPt.push(this._fp('home', SEQ[k], p));
-    }
-    this.chainEnd = this.keyP[N - 1]; // 0.84
-    this.goal = { x: 104, y: 34 };
-  }
+  _fp(team, i, p) { const arr = team === 'home' ? HOME : AWAY, b = arr[i], e = ease(Math.min(1, p / 0.9)); return team === 'home' ? { x: Math.min(101, b.x + e * 18), y: b.y } : { x: b.x - e * 4, y: b.y + (34 - b.y) * e * 0.18 }; }
+  _build() { this.keyP = []; this.keyPt = []; const N = SEQ.length; for (let k = 0; k < N; k++) { const p = CHAIN0 + (CHAIN1 - CHAIN0) * (k / (N - 1)); this.keyP.push(p); this.keyPt.push(this._fp('home', SEQ[k], p)); } this.chainEnd = this.keyP[N - 1]; }
   _ball(p) {
-    if (p <= this.keyP[0]) return { x: this.keyPt[0].x, y: this.keyPt[0].y, lift: 0, seg: -1 };
-    if (p <= this.chainEnd) {
-      let k = 0; while (k < this.keyP.length - 2 && p > this.keyP[k + 1]) k++;
-      const lt = (p - this.keyP[k]) / (this.keyP[k + 1] - this.keyP[k]);
-      const a = this.keyPt[k], b = this.keyPt[k + 1];
-      return { x: lerp(a.x, b.x, ease(lt)), y: lerp(a.y, b.y, ease(lt)), lift: Math.sin(Math.PI * lt), seg: k };
-    }
-    const lt = (p - this.chainEnd) / (1 - this.chainEnd);
-    const a = this.keyPt[this.keyPt.length - 1];
-    return { x: lerp(a.x, this.goal.x, ease(lt)), y: lerp(a.y, this.goal.y, ease(lt)), lift: Math.sin(Math.PI * lt) * 1.4, seg: 99 };
+    if (p <= this.keyP[0]) return { x: this.keyPt[0].x, y: this.keyPt[0].y, lift: 0, seg: 0, phase: 'pass' };
+    if (p <= this.chainEnd) { let k = 0; while (k < this.keyP.length - 2 && p > this.keyP[k + 1]) k++; const lt = (p - this.keyP[k]) / (this.keyP[k + 1] - this.keyP[k]); const a = this.keyPt[k], b = this.keyPt[k + 1]; return { x: lerp(a.x, b.x, ease(lt)), y: lerp(a.y, b.y, ease(lt)), lift: Math.sin(Math.PI * lt) * 0.8, seg: k, phase: 'pass' }; }
+    if (p <= CARRY1) { const lt = (p - this.chainEnd) / (CARRY1 - this.chainEnd); const a = this.keyPt[this.keyPt.length - 1]; return { x: lerp(a.x, CARRY.x, ease(lt)), y: lerp(a.y, CARRY.y, ease(lt)), lift: 0, carry: true, phase: 'carry' }; }
+    if (p <= SHOT1) { const lt = (p - CARRY1) / (SHOT1 - CARRY1), e = ease(lt); const bend = Math.sin(Math.PI * lt) * 4; return { x: lerp(CARRY.x, GOAL.x, e), y: lerp(CARRY.y, GOAL.y, e) + bend, lift: Math.sin(Math.PI * lt) * 1.4, shot: true, phase: 'shot' }; }
+    return { x: GOAL.x, y: GOAL.y, lift: 0, goal: true, phase: 'goal' };
   }
-  setScroll(progress, heroActive) { this.scroll = progress; this.heroActive = heroActive; }
-  setHeat(v) { this.heatTarget = v ? 1 : 0; }
 
   _resize() {
     const r = this.c.getBoundingClientRect();
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.cw = r.width; this.ch = r.height;
-    this.c.width = Math.round(r.width * this.dpr); this.c.height = Math.round(r.height * this.dpr);
+    this.cw = r.width || 600; this.ch = r.height || 390;
+    this.c.width = Math.round(this.cw * this.dpr); this.c.height = Math.round(this.ch * this.dpr);
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    const pad = Math.max(10, Math.min(this.cw, this.ch) * 0.05), aw = this.cw - 2 * pad, ah = this.ch - 2 * pad;
+    this.scale = Math.min(aw / L, ah / W); this.fw = L * this.scale; this.fh = W * this.scale;
+    this.ox = (this.cw - this.fw) / 2; this.oy = (this.ch - this.fh) / 2;
   }
-  sx(x) { const p = this.o.pad; return p + (x / L) * (this.cw - 2 * p); }
-  sy(y) { const p = this.o.pad; return p + (y / W) * (this.ch - 2 * p); }
-  sl(d) { const p = this.o.pad; return (d / L) * (this.cw - 2 * p); }
+  sx(x) { return this.ox + x * this.scale; } sy(y) { return this.oy + y * this.scale; } sl(d) { return d * this.scale; }
 
+  setProgress(p) { this.target = Math.max(0, Math.min(1, p)); }
   _loop(now) {
     const dt = Math.min(0.04, (now - this.last) / 1000); this.last = now; this.time += dt;
-    // target progress: hero -> calm idle loop; else scroll
-    let target;
-    if (this.heroActive) { this.idle += dt * 0.16; target = 0.03 + 0.085 * (0.5 + 0.5 * Math.sin(this.idle)); }
-    else target = this.scroll;
-    this.actual += (target - this.actual) * Math.min(1, dt * 3.5);
-    this.heatAlpha += (this.heatTarget - this.heatAlpha) * Math.min(1, dt * 2.5);
-    this._render(this.actual);
-    requestAnimationFrame(this._loop);
+    const prev = this.t;
+    this.t += (this.target - this.t) * Math.min(1, dt * 9); // snappy ease to the scrolled position
+    if (this.t < prev - 0.04) { this.trail = []; } // scrubbed backwards: clear ball trail
+    this._render(this.t); requestAnimationFrame(this._loop);
   }
 
   _render(p) {
-    const ctx = this.ctx; ctx.clearRect(0, 0, this.cw, this.ch);
-    const ball = this._ball(p);
-    this._grass();
-    // final-third highlight
-    if (ball.x > 70) {
-      ctx.save(); ctx.globalAlpha = Math.min(1, (ball.x - 70) / 14) * 0.16;
-      ctx.fillStyle = this.o.home;
-      ctx.fillRect(this.sx(70), this.sy(0), this.sx(105) - this.sx(70), this.sy(W) - this.sy(0));
-      ctx.restore();
-    }
-    if (this.heatAlpha > 0.02) this._heat();
-    this._lines();
-    this._network(p);
-    // players
-    for (const team of ['home', 'away']) {
-      const col = team === 'home' ? this.o.home : this.o.away;
-      const dark = team === 'home' ? '#11365f' : '#7a5a16';
-      for (let i = 0; i < F[team].length; i++) {
-        let pos = this._fp(team, i, p);
-        const jx = Math.sin(this.time * 1.5 + i) * 0.25, jy = Math.cos(this.time * 1.3 + i * 1.7) * 0.25;
-        let x = pos.x + jx, y = pos.y + jy;
-        if (team === 'away') { // defenders drift toward ball
-          const press = i === this._nearestAway(ball) ? 0.5 : 0.16;
-          x += (ball.x - x) * press * ease(p); y += (ball.y - y) * press * 0.6 * ease(p);
-        }
-        this.grid[Math.min(this.GX - 1, Math.max(0, Math.floor(y / W * this.GX)))]
-                 [Math.min(this.GY - 1, Math.max(0, Math.floor(x / L * this.GY)))] += team === 'home' ? 1 : 0;
-        this._dot(this.sx(x), this.sy(y), col, dark, F[team][i].num, team === 'home');
-      }
-    }
-    // ball
-    this._ballGfx(ball);
-    // review-clip marker near the end
-    if (p > 0.9) this._reviewMarker(ball, Math.min(1, (p - 0.9) / 0.08));
-
-    if (this.onTick) this.onTick(this._stats(p));
-  }
-  _nearestAway(ball) {
-    let bi = 1, bd = 1e9;
-    for (let i = 1; i < F.away.length; i++) { const b = F.away[i]; const d = Math.hypot(b.x - ball.x, b.y - ball.y); if (d < bd) { bd = d; bi = i; } }
-    return bi;
-  }
-  _stats(p) {
-    let passes = 0; for (let k = 0; k < this.keyP.length - 1; k++) if (p >= this.keyP[k + 1]) passes++;
-    const phase = p < 0.2 ? 'Build-up' : p < 0.55 ? 'Progression' : p < 0.86 ? 'Final third' : 'Shot · review';
-    const poss = 60 + 3 * Math.sin(p * 6); // hovers ~57-63
-    return { passes, phase, possession: Math.round(poss * 10) / 10,
-      finalThird: p > 0.62 ? 1 : 0, reviewClips: p > 0.9 ? 1 : 0, progress: p };
+    const ctx = this.ctx; ctx.clearRect(0, 0, this.cw, this.ch); const ball = this._ball(p);
+    this._grass(); this._lines();
+    this._network(p); this._activePass(p, ball);
+    this._team('away', p, ball);
+    this._team('home', p, ball);
+    if (p >= CHAL0 && p <= CHAL1) this._challenge(p, ball);
+    if (!ball.goal) this._ball2(ball);
+    if (ball.goal) this._goal();
+    if (this.onTick) { let d = 0; for (let k = 0; k < this.keyP.length - 1; k++) if (p >= this.keyP[k + 1]) d++; const ph = ball.goal ? 'Goal!' : ball.shot ? 'Shot' : (p >= CHAL0 && p <= CHAL1) ? 'Challenge' : ball.carry ? 'Final third' : p < 0.2 ? 'Build-up' : 'Progression'; this.onTick({ phase: ph, completed: d, lastPass: this.passLabels[Math.max(0, d - 1)], score: ball.goal ? 1 : 0, progress: p }); }
   }
 
-  // ---------- drawing ----------
   _grass() {
-    const ctx = this.ctx, p = this.o.pad;
-    const g = ctx.createLinearGradient(0, p, 0, this.ch - p);
-    g.addColorStop(0, this.o.grass[0]); g.addColorStop(1, this.o.grass[1]);
-    ctx.fillStyle = g; this._rr(p, p, this.cw - 2 * p, this.ch - 2 * p, 18); ctx.fill();
-    ctx.save(); this._rr(p, p, this.cw - 2 * p, this.ch - 2 * p, 18); ctx.clip();
-    const n = 12;
-    for (let i = 0; i < n; i++) { ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)'; ctx.fillRect(this.sx(i / n * L), p, this.sl(L / n), this.ch - 2 * p); }
-    const v = ctx.createRadialGradient(this.cw / 2, this.ch / 2, this.ch * 0.15, this.cw / 2, this.ch / 2, this.cw * 0.72);
-    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.3)');
-    ctx.fillStyle = v; ctx.fillRect(0, 0, this.cw, this.ch); ctx.restore();
+    const ctx = this.ctx;
+    // full-bleed base grass (markings sit inset, with a tasteful grass margin)
+    const base = ctx.createLinearGradient(0, 0, 0, this.ch); base.addColorStop(0, '#3aa861'); base.addColorStop(0.55, '#2c9352'); base.addColorStop(1, '#1d7740');
+    ctx.fillStyle = base; ctx.fillRect(0, 0, this.cw, this.ch);
+    // refined mowing stripes aligned to pitch length
+    ctx.save(); const n = 16; for (let i = 0; i < n; i++) { ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.038)' : 'rgba(0,0,0,0.045)'; ctx.fillRect(this.sx(i / n * L), 0, this.sl(L / n), this.ch); }
+    ctx.restore();
+    // soft top light sheen
+    const sheen = ctx.createLinearGradient(0, 0, 0, this.ch * 0.55); sheen.addColorStop(0, 'rgba(255,255,255,0.09)'); sheen.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = sheen; ctx.fillRect(0, 0, this.cw, this.ch * 0.55);
+    // vignette for depth
+    const v = ctx.createRadialGradient(this.cw * 0.56, this.ch * 0.44, this.ch * 0.18, this.cw * 0.5, this.ch * 0.5, this.cw * 0.74); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(2,16,8,0.26)'); ctx.fillStyle = v; ctx.fillRect(0, 0, this.cw, this.ch);
   }
   _lines() {
-    const ctx = this.ctx; ctx.strokeStyle = this.o.line; ctx.lineWidth = 1.6;
-    this._rr(this.sx(0), this.sy(0), this.sl(L), this.sy(W) - this.sy(0), 14); ctx.stroke();
+    const ctx = this.ctx; ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.74)'; ctx.lineWidth = Math.max(1, this.sl(0.16)); ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(0,30,12,0.25)'; ctx.shadowBlur = Math.max(1, this.sl(0.3)); ctx.shadowOffsetY = Math.max(0.5, this.sl(0.12));
+    ctx.strokeRect(this.sx(0), this.sy(0), this.fw, this.fh);
     ctx.beginPath(); ctx.moveTo(this.sx(L / 2), this.sy(0)); ctx.lineTo(this.sx(L / 2), this.sy(W)); ctx.stroke();
     ctx.beginPath(); ctx.arc(this.sx(L / 2), this.sy(W / 2), this.sl(9.15), 0, 7); ctx.stroke();
-    ctx.fillStyle = this.o.line; ctx.beginPath(); ctx.arc(this.sx(L / 2), this.sy(W / 2), 2.5, 0, 7); ctx.fill();
-    this._goal(0); this._goal(L);
+    ctx.fillStyle = 'rgba(255,255,255,0.82)'; ctx.beginPath(); ctx.arc(this.sx(L / 2), this.sy(34), this.sl(0.32), 0, 7); ctx.fill();
+    this._end(0); this._end(L); this._corners(); ctx.restore();
   }
-  _goal(endX) {
-    const ctx = this.ctx, left = endX === 0;
-    const xPen = left ? 16.5 : L - 16.5, xSix = left ? 5.5 : L - 5.5;
-    const pen = [34 - 20.15, 34 + 20.15], six = [34 - 9.16, 34 + 9.16];
-    ctx.beginPath();
-    ctx.moveTo(this.sx(endX), this.sy(pen[0])); ctx.lineTo(this.sx(xPen), this.sy(pen[0]));
-    ctx.lineTo(this.sx(xPen), this.sy(pen[1])); ctx.lineTo(this.sx(endX), this.sy(pen[1])); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(this.sx(endX), this.sy(six[0])); ctx.lineTo(this.sx(xSix), this.sy(six[0]));
-    ctx.lineTo(this.sx(xSix), this.sy(six[1])); ctx.lineTo(this.sx(endX), this.sy(six[1])); ctx.stroke();
-    const spot = left ? 11 : L - 11;
-    ctx.beginPath(); ctx.arc(this.sx(spot), this.sy(34), 2, 0, 7); ctx.fill();
-    ctx.beginPath(); const a0 = left ? -0.9 : Math.PI - 0.9, a1 = left ? 0.9 : Math.PI + 0.9;
-    ctx.arc(this.sx(spot), this.sy(34), this.sl(9.15), a0, a1); ctx.stroke();
-    ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(this.sx(endX), this.sy(34 - 3.66)); ctx.lineTo(this.sx(endX), this.sy(34 + 3.66)); ctx.stroke(); ctx.lineWidth = 1.6;
+  _end(endX) {
+    const ctx = this.ctx, left = endX === 0, dir = left ? 1 : -1;
+    const penX = endX + dir * 16.5, sixX = endX + dir * 5.5, spotX = endX + dir * 11;
+    ctx.beginPath(); ctx.moveTo(this.sx(endX), this.sy(13.84)); ctx.lineTo(this.sx(penX), this.sy(13.84)); ctx.lineTo(this.sx(penX), this.sy(54.16)); ctx.lineTo(this.sx(endX), this.sy(54.16)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(this.sx(endX), this.sy(24.84)); ctx.lineTo(this.sx(sixX), this.sy(24.84)); ctx.lineTo(this.sx(sixX), this.sy(43.16)); ctx.lineTo(this.sx(endX), this.sy(43.16)); ctx.stroke();
+    ctx.beginPath(); ctx.arc(this.sx(spotX), this.sy(34), this.sl(0.32), 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(this.sx(spotX), this.sy(34), this.sl(9.15), left ? -0.93 : Math.PI - 0.93, left ? 0.93 : Math.PI + 0.93); ctx.stroke();
+    ctx.save(); ctx.lineWidth = Math.max(1.6, this.sl(0.28)); ctx.strokeStyle = 'rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.moveTo(this.sx(endX), this.sy(30.34)); ctx.lineTo(this.sx(endX - dir * 1.6), this.sy(30.34)); ctx.lineTo(this.sx(endX - dir * 1.6), this.sy(37.66)); ctx.lineTo(this.sx(endX), this.sy(37.66)); ctx.stroke(); ctx.restore();
   }
-  _heat() {
-    const ctx = this.ctx; ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    let mx = 1; for (const r of this.grid) for (const v of r) if (v > mx) mx = v;
-    const rad = this.sl(L) / this.GY * 1.8;
-    for (let i = 0; i < this.GX; i++) for (let j = 0; j < this.GY; j++) {
-      const v = this.grid[i][j] / mx; if (v < 0.1) continue;
-      const cx = this.sx((j + 0.5) / this.GY * L), cy = this.sy((i + 0.5) / this.GX * W);
-      const a = Math.pow(v, 1.25) * 0.5 * this.heatAlpha;
-      const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-      rg.addColorStop(0, this._rgba(this.o.heatColor, a)); rg.addColorStop(1, this._rgba(this.o.heatColor, 0));
-      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 7); ctx.fill();
+  _corners() { const ctx = this.ctx, r = this.sl(1); [[0, 0, 0, 0.5], [L, 0, 0.5, 1], [0, W, 1.5, 2], [L, W, 1, 1.5]].forEach(([x, y, a, b]) => { ctx.beginPath(); ctx.arc(this.sx(x), this.sy(y), r, a * Math.PI, b * Math.PI); ctx.stroke(); }); }
+  _network(p) { const ctx = this.ctx; ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.26)'; ctx.lineWidth = 1; ctx.setLineDash([this.sl(0.8), this.sl(1)]); for (let k = 0; k < this.keyP.length - 1; k++) { if (p < this.keyP[k + 1]) break; const a = this.keyPt[k], b = this.keyPt[k + 1]; ctx.beginPath(); ctx.moveTo(this.sx(a.x), this.sy(a.y)); ctx.lineTo(this.sx(b.x), this.sy(b.y)); ctx.stroke(); } ctx.setLineDash([]); ctx.restore(); }
+  _activePass(p, ball) {
+    if (p <= this.keyP[0] || ball.carry || ball.goal) return; const ctx = this.ctx;
+    const a = ball.shot ? CARRY : this.keyPt[ball.seg];
+    const ax = this.sx(a.x), ay = this.sy(a.y), bx = this.sx(ball.x), by = this.sy(ball.y - ball.lift * 0);
+    const g = ctx.createLinearGradient(ax, ay, bx, by); g.addColorStop(0, 'rgba(207,224,255,0)'); g.addColorStop(1, ball.shot ? 'rgba(255,240,170,0.95)' : 'rgba(220,235,255,0.95)');
+    ctx.save(); ctx.strokeStyle = g; ctx.lineWidth = Math.max(1.6, this.sl(ball.shot ? 0.4 : 0.32)); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.restore();
+  }
+  _team(team, p, ball) {
+    const recv = team === 'home' ? this._recv(p) : -1, fill = team === 'home' ? this.o.home : this.o.away, numCol = team === 'home' ? '#15306e' : '#fff';
+    for (let i = 0; i < (team === 'home' ? HOME : AWAY).length; i++) {
+      const pos = this._fp(team, i, p);
+      let x = pos.x + Math.sin(this.time * 1.05 + i) * 0.13, y = pos.y + Math.cos(this.time * 0.9 + i * 1.7) * 0.13;
+      if (team === 'away') { const press = i === this._near(ball) ? 0.4 : 0.12; x += (ball.x - x) * press * ease(p); y += (ball.y - y) * press * 0.6 * ease(p); }
+      this._player(this.sx(x), this.sy(y), fill, numCol, (team === 'home' ? HOME : AWAY)[i].num, i === recv);
     }
+  }
+  _recv(p) { if (p > this.chainEnd) return SEQ[SEQ.length - 1]; let k = 0; while (k < this.keyP.length - 2 && p > this.keyP[k + 1]) k++; return SEQ[k + 1]; }
+  _near(ball) { let bi = 1, bd = 1e9; for (let i = 1; i < AWAY.length; i++) { const b = AWAY[i], d = Math.hypot(b.x - ball.x, b.y - ball.y); if (d < bd) { bd = d; bi = i; } } return bi; }
+  _player(cx, cy, fill, numCol, jersey, hi) {
+    const ctx = this.ctx, r = Math.max(5, this.sl(1.4)); ctx.save();
+    ctx.fillStyle = 'rgba(8,20,46,0.34)'; ctx.beginPath(); ctx.ellipse(cx + r * 0.16, cy + r * 0.62, r * 0.96, r * 0.42, 0, 0, 7); ctx.fill();
+    if (hi) { ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, r + 3.2, 0, 7); ctx.stroke(); }
+    const g = ctx.createRadialGradient(cx - r * 0.4, cy - r * 0.5, r * 0.2, cx, cy, r * 1.15); g.addColorStop(0, this._lighten(fill, 0.3)); g.addColorStop(1, this._lighten(fill, -0.14));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
+    ctx.strokeStyle = this._lighten(fill, -0.4); ctx.lineWidth = 1; ctx.stroke();
+    if (r > 7.5) { ctx.fillStyle = numCol; ctx.font = `600 ${Math.round(r * 0.9)}px "IBM Plex Mono",monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = 0.95; ctx.fillText(jersey, cx, cy + 0.4); }
     ctx.restore();
   }
-  _network(p) {
-    const ctx = this.ctx; ctx.setLineDash([5, 5]); ctx.lineWidth = 1.5;
-    for (let k = 0; k < this.keyP.length - 1; k++) {
-      if (p < this.keyP[k + 1]) break;
-      const a = this.keyPt[k], b = this.keyPt[k + 1];
-      ctx.strokeStyle = this._rgba(this.o.home, 0.32);
-      ctx.beginPath(); ctx.moveTo(this.sx(a.x), this.sy(a.y)); ctx.lineTo(this.sx(b.x), this.sy(b.y)); ctx.stroke();
-    }
-    ctx.setLineDash([]);
+  _challenge(p, ball) {
+    const ctx = this.ctx, di = this._near(ball), b = AWAY[di];
+    const lt = (p - CHAL0) / (CHAL1 - CHAL0);
+    const sx = lerp(b.x, ball.x - 1.6, ease(lt)), sy = lerp(b.y, ball.y + 1.2, ease(lt));
+    // slide streak
+    ctx.save(); ctx.strokeStyle = 'rgba(207,224,255,0.5)'; ctx.lineWidth = Math.max(2.4, this.sl(1)); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(this.sx(b.x), this.sy(b.y)); ctx.lineTo(this.sx(sx), this.sy(sy)); ctx.stroke();
+    // impact spark near ball
+    if (lt > 0.6) { const ix = this.sx(ball.x), iy = this.sy(ball.y); ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.4; for (let a = 0; a < 6; a++) { const ang = a / 6 * 6.28 + this.time; ctx.beginPath(); ctx.moveTo(ix + Math.cos(ang) * 5, iy + Math.sin(ang) * 5); ctx.lineTo(ix + Math.cos(ang) * 9, iy + Math.sin(ang) * 9); ctx.stroke(); } }
+    // label
+    const lx = this.sx(b.x) - 30, ly = this.sy(b.y) + 14; ctx.globalAlpha = Math.sin(Math.PI * lt); ctx.fillStyle = 'rgba(10,22,40,0.85)'; this._rr(lx, ly, 70, 17, 5); ctx.fill(); ctx.fillStyle = '#cfe0ff'; ctx.font = '600 8px "IBM Plex Mono",monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('● CHALLENGE', lx + 8, ly + 9); ctx.restore();
   }
-  _dot(cx, cy, col, dark, num, home) {
-    const ctx = this.ctx;
-    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(cx, cy + 7, 7, 3, 0, 0, 7); ctx.fill();
-    const g = ctx.createRadialGradient(cx - 2, cy - 3, 1, cx, cy, 8.5);
-    g.addColorStop(0, col); g.addColorStop(1, dark);
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 8.5, 0, 7); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1.3; ctx.stroke();
-    ctx.fillStyle = home ? '#fff' : '#3a2a06'; ctx.font = '600 9px "IBM Plex Mono",monospace';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(num, cx, cy + 0.5);
+  _ball2(ball) {
+    const ctx = this.ctx, lift = ball.lift * Math.min(16, this.sl(8)), bx = this.sx(ball.x), by = this.sy(ball.y) - lift, r = Math.max(2.6, this.sl(0.82));
+    this.trail.push([bx, by]); if (this.trail.length > 9) this.trail.shift();
+    ctx.save();
+    for (let k = 1; k < this.trail.length; k++) { const a = k / this.trail.length; ctx.strokeStyle = `rgba(255,255,255,${a * 0.3})`; ctx.lineWidth = a * 2.2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(this.trail[k - 1][0], this.trail[k - 1][1]); ctx.lineTo(this.trail[k][0], this.trail[k][1]); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(8,20,46,0.32)'; ctx.beginPath(); ctx.ellipse(bx, this.sy(ball.y) + r * 0.5, r * 1.1, r * 0.5, 0, 0, 7); ctx.fill();
+    const g = ctx.createRadialGradient(bx - r * 0.4, by - r * 0.5, 0, bx, by, r); g.addColorStop(0, '#fff'); g.addColorStop(1, '#cfd8e6'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, r, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(30,40,55,0.35)'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.restore();
   }
-  _ballGfx(ball) {
-    const ctx = this.ctx; const lift = ball.lift * Math.min(30, this.sl(16));
-    const bx = this.sx(ball.x), by = this.sy(ball.y) - lift;
-    ctx.shadowColor = 'rgba(255,255,255,0.7)'; ctx.shadowBlur = 12;
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, 4.5, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
-  }
-  _reviewMarker(ball, a) {
-    const ctx = this.ctx; const bx = this.sx(ball.x), by = this.sy(ball.y);
-    ctx.globalAlpha = a;
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.6;
-    ctx.strokeRect(bx - 26, by - 40, 52, 26);
-    ctx.fillStyle = 'rgba(8,22,37,0.82)'; this._rr(bx - 26, by - 40, 52, 26, 6); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.font = '600 8px "IBM Plex Mono",monospace'; ctx.textAlign = 'center';
-    ctx.fillText('▶ CLIP', bx, by - 24);
-    ctx.globalAlpha = 1;
+  _goal() {
+    const ctx = this.ctx, gx = this.sx(105), top = this.sy(30.34), bot = this.sy(37.66), depth = this.sl(2.2);
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 8);
+    ctx.save();
+    // net ripple
+    ctx.strokeStyle = `rgba(255,255,255,${0.4 + 0.3 * pulse})`; ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) { const yy = lerp(top, bot, i / 5); ctx.beginPath(); ctx.moveTo(gx, yy); ctx.lineTo(gx + depth, yy + Math.sin(this.time * 6 + i) * 2); ctx.stroke(); }
+    for (let i = 0; i <= 3; i++) { const xx = gx + depth * (i / 3); ctx.beginPath(); ctx.moveTo(xx, top); ctx.lineTo(xx, bot); ctx.stroke(); }
+    // ball in net
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(gx + depth * 0.5, lerp(top, bot, 0.5), Math.max(2.6, this.sl(0.82)), 0, 7); ctx.fill();
+    // glow
+    const glow = ctx.createRadialGradient(gx, this.sy(34), 0, gx, this.sy(34), this.sl(16)); glow.addColorStop(0, `rgba(255,240,170,${0.3 * pulse})`); glow.addColorStop(1, 'rgba(255,240,170,0)'); ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(gx, this.sy(34), this.sl(16), 0, 7); ctx.fill();
+    // GOAL label
+    const lx = this.sx(74), ly = this.sy(8); ctx.fillStyle = 'rgba(10,22,40,0.9)'; this._rr(lx, ly, 58, 22, 6); ctx.fill(); ctx.fillStyle = '#ffe9a6'; ctx.font = '700 13px "Space Grotesk","Inter",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('GOAL', lx + 29, ly + 12);
+    ctx.restore();
   }
   _rr(x, y, w, h, r) { const c = this.ctx; c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
-  _rgba(hex, a) { const h = hex.replace('#', ''); const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
+  _lighten(hex, amt) { const h = hex.replace('#', ''); let n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; const f = c => Math.max(0, Math.min(255, Math.round(c + (amt > 0 ? (255 - c) * amt : c * amt)))); return `rgb(${f(r)},${f(g)},${f(b)})`; }
 }
-window.ScrollPitch = ScrollPitch;
+window.PitchScene = PitchScene;

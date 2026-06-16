@@ -1,0 +1,62 @@
+---
+import KfLayout from "../layouts/KfLayout.astro";
+const base = import.meta.env.BASE_URL;
+---
+<KfLayout title="Sign in — Korner Flag">
+  <section class="auth">
+    <div class="auth-bg"></div>
+    <div class="auth-card reveal in">
+      <img class="auth-logo" src={`${base}kf/logo.png`} alt="Korner Flag" />
+      <h1>Sign in to Korner Flag</h1>
+      <p>Turn your match footage into a coach-ready room. Start with one match free.</p>
+
+      <a class="gbtn" href={`${base}dashboard/`}>
+        <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Continue with Google
+      </a>
+
+      <div class="auth-or"><span>or</span></div>
+
+      <label class="auth-field">Email
+        <input type="email" placeholder="coach@school.edu" autocomplete="email" />
+      </label>
+      <a class="btn btn-primary btn-lg auth-submit" href={`${base}dashboard/`}>Continue with email</a>
+
+      <small class="auth-fine">By continuing you agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</small>
+    </div>
+    <p class="auth-alt">New to Korner Flag? <a href={`${base}#start`}>See how it works →</a></p>
+  </section>
+</KfLayout>
+
+<style is:global>
+  .auth { position: relative; min-height: 100vh; display: grid; place-items: center; padding: 132px 24px 70px; }
+  .auth-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(60% 50% at 50% 0%, rgba(70,160,105,.10), transparent 70%), radial-gradient(70% 60% at 85% 8%, rgba(44,106,212,.10), transparent 65%); }
+  .auth-card { position: relative; z-index: 1; width: 100%; max-width: 420px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--sh-lg); padding: 38px 34px; text-align: center; }
+  .auth-logo { width: 46px; height: 46px; margin: 0 auto 18px; filter: drop-shadow(0 4px 12px rgba(16,24,34,.18)); }
+  .auth-card h1 { font-size: 25px; font-weight: 600; }
+  .auth-card > p { color: var(--text-2); font-size: 14.5px; margin: 10px 0 26px; line-height: 1.55; }
+  .gbtn { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%;
+    font-family: var(--font-body); font-weight: 600; font-size: 15px; padding: 13px 18px; border-radius: 12px;
+    background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--sh-sm);
+    transition: border-color .2s var(--ease), box-shadow .2s var(--ease), transform .14s var(--ease); }
+  .gbtn:hover { border-color: rgba(16,24,34,.22); box-shadow: var(--sh); transform: translateY(-1.5px); }
+  .auth-or { display: flex; align-items: center; gap: 14px; margin: 20px 0; color: var(--text-3); font-size: 12.5px; }
+  .auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .auth-field { display: block; text-align: left; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+  .auth-field input { width: 100%; margin-top: 8px; padding: 13px 14px; border-radius: 11px; border: 1px solid var(--border);
+    background: var(--bg-soft); font-family: var(--font-body); font-size: 15px; color: var(--text); outline: none;
+    transition: border-color .2s, box-shadow .2s; }
+  .auth-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .auth-submit { width: 100%; margin-top: 14px; }
+  .auth-fine { display: block; margin-top: 18px; color: var(--text-3); font-size: 12px; line-height: 1.5; }
+  .auth-fine a { color: var(--text-2); text-decoration: underline; }
+  .auth-alt { position: relative; z-index: 1; margin-top: 22px; color: var(--text-2); font-size: 14px; }
+  .auth-alt a { color: var(--accent); font-weight: 600; }
+</style>

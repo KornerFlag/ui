@@ -1,0 +1,125 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "field.js"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Space Grotesk|Inter))/i]",
+        "message": "Font not provided by the design system. Available: Space Grotesk, Inter."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {},
+    "tokens": [
+      "--accent",
+      "--accent-ink",
+      "--accent-soft",
+      "--bg",
+      "--bg-soft",
+      "--border",
+      "--border-2",
+      "--container",
+      "--ease",
+      "--ease-soft",
+      "--font-body",
+      "--font-display",
+      "--grad",
+      "--grad-soft",
+      "--green",
+      "--green-deep",
+      "--ink",
+      "--ink-2",
+      "--ink-3",
+      "--ink-line",
+      "--ink-line-2",
+      "--on-ink",
+      "--on-ink-mute",
+      "--on-ink-soft",
+      "--sh",
+      "--sh-lg",
+      "--sh-sm",
+      "--surface",
+      "--text",
+      "--text-2",
+      "--text-3"
+    ],
+    "tokenKinds": {
+      "--bg": "color",
+      "--bg-soft": "color",
+      "--surface": "color",
+      "--ink": "color",
+      "--ink-2": "color",
+      "--ink-3": "color",
+      "--ink-line": "color",
+      "--ink-line-2": "color",
+      "--text": "font",
+      "--text-2": "font",
+      "--text-3": "font",
+      "--on-ink": "color",
+      "--on-ink-soft": "color",
+      "--on-ink-mute": "color",
+      "--accent": "color",
+      "--accent-ink": "color",
+      "--accent-soft": "color",
+      "--green": "color",
+      "--green-deep": "color",
+      "--grad": "color",
+      "--grad-soft": "color",
+      "--border": "color",
+      "--border-2": "color",
+      "--sh-sm": "shadow",
+      "--sh": "shadow",
+      "--sh-lg": "shadow",
+      "--font-display": "font",
+      "--font-body": "font",
+      "--container": "spacing",
+      "--ease": "other",
+      "--ease-soft": "other"
+    },
+    "fontFamilies": [
+      "Inter",
+      "Space Grotesk"
+    ]
+  }
+}

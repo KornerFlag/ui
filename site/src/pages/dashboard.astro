@@ -1,187 +1,115 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
-import manifestData from "../../public/data/manifest.json";
-import { clipTitle, formatDuration, safeNumber } from "../lib/site";
+import KfLayout from "../layouts/KfLayout.astro";
+const base = import.meta.env.BASE_URL;
 
-const clips = manifestData.clips || [];
-const featuredClip = clips[0];
-const featuredHref = featuredClip
-  ? `${import.meta.env.BASE_URL}clips/${featuredClip.clip_id}/`
-  : `${import.meta.env.BASE_URL}matches/`;
-const totalMinutes = Math.round(
-  clips.reduce((sum: number, clip: Record<string, any>) => sum + safeNumber(clip.duration_seconds), 0) / 60,
-);
+const matches = [
+  { id: "nc-state-washington", home: "NC State", away: "Washington", date: "Apr 6, 2026", score: "1–0", poss: 54, status: "Ready" },
+  { id: "nc-state-duke", home: "NC State", away: "Duke", date: "Mar 29, 2026", score: "2–2", poss: 61, status: "Ready" },
+  { id: "u19-scrimmage", home: "U19", away: "Scrimmage", date: "Mar 21, 2026", score: "3–1", poss: 58, status: "Processing" },
+];
+const stats = [
+  { k: "Matches analyzed", v: "12" },
+  { k: "Distance tracked", v: "812 km" },
+  { k: "Clips flagged", v: "96" },
+  { k: "Plan", v: "Pilot" },
+];
 ---
-
-<BaseLayout
-  title="Korner Flags | Dashboard"
-  description="Recent analyses and product entry points for Korner Flags."
-  activeNav="dashboard"
->
-  <div class="page dashboard-page">
-    <section class="dashboard-hero">
-      <div>
-        <span class="eyebrow">Dashboard</span>
-        <h1 class="display">The product home for match review.</h1>
-        <p>
-          Open the latest analysis, return to past matches, or move into package selection without
-          leaving the same product system.
-        </p>
-      </div>
-
-      <div class="dashboard-actions">
-        <a class="button-primary" href={featuredHref}>
-          Open latest room
-        </a>
-        <a class="button-secondary" href={`${import.meta.env.BASE_URL}matches/`}>View past matches</a>
-      </div>
-    </section>
-
-    <section class="metric-grid">
-      <div class="metric-card">
-        <span>Recent matches</span>
-        <strong>{clips.length}</strong>
-        <p>Demo library currently available for coach walkthroughs and stakeholder presentations.</p>
-      </div>
-      <div class="metric-card">
-        <span>Processed footage</span>
-        <strong>{totalMinutes} min</strong>
-        <p>All clips are ready to open immediately with annotated playback already in place.</p>
-      </div>
-      <div class="metric-card">
-        <span>Current plan</span>
-        <strong>Investor demo</strong>
-        <p>Focus is on a polished product story, measured claims, and clean end-to-end presentation.</p>
-      </div>
-    </section>
-
-    <section class="surface-card dashboard-panel">
-      <div class="section-heading">
+<KfLayout title="Dashboard — Korner Flag" active="Dashboard">
+  <section class="page-shell">
+    <div class="container">
+      <div class="page-head reveal in">
         <div>
-          <span class="eyebrow">Recent analyses</span>
-          <h2>Open the rooms that matter most</h2>
+          <span class="eyebrow">Dashboard</span>
+          <h1>Welcome back, Coach.</h1>
+          <p class="muted">Pick up a recent analysis or send a new match for processing.</p>
         </div>
-        <p>
-          This hub prioritizes the clips most useful in meetings: the flagship room, the archive,
-          and the checkout path for a more complete paid workflow.
-        </p>
+        <a class="btn btn-primary btn-lg" href={`${base}login/`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          Upload a match
+        </a>
       </div>
 
-      <div class="analysis-list">
-        {clips.map((clip, index) => (
-          <article class="analysis-row">
-            <div>
-              <p>{index === 0 ? "Featured analysis" : "Analysis room"}</p>
-              <h3>{clipTitle(clip)}</h3>
-            </div>
-            <div class="analysis-meta">
-              <span class="mono">{formatDuration(clip.duration_seconds)}</span>
-              <a href={`${import.meta.env.BASE_URL}clips/${clip.clip_id}/`}>Open room</a>
-            </div>
-          </article>
+      <div class="stat-row reveal" data-d="1">
+        {stats.map((s) => (
+          <div class="lcard stat-card"><span class="sk">{s.k}</span><span class="sv">{s.v}</span></div>
         ))}
       </div>
-    </section>
-  </div>
-</BaseLayout>
 
-<style>
-  .dashboard-page {
-    display: grid;
-    gap: 28px;
-  }
+      <div class="dash-grid">
+        <div class="reveal" data-d="2">
+          <div class="block-head"><h2>Recent matches</h2><a class="link" href={`${base}matches/`}>View all →</a></div>
+          <div class="match-list">
+            {matches.map((m) => (
+              <a class="lcard match-row" href={m.status === "Ready" ? `${base}room/` : "#"}>
+                <span class="mthumb"><span></span></span>
+                <span class="mmeta">
+                  <b>{m.home} <span class="vs">vs</span> {m.away}</b>
+                  <small>{m.date} · Possession {m.poss}%</small>
+                </span>
+                <span class="mscore">{m.score}</span>
+                <span class:list={["mstatus", m.status === "Ready" ? "ok" : "wait"]}>{m.status}</span>
+              </a>
+            ))}
+          </div>
+        </div>
 
-  .dashboard-hero {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 30px 32px;
-    border-radius: 28px;
-    background:
-      radial-gradient(circle at top right, rgba(107, 160, 216, 0.22), transparent 30%),
-      linear-gradient(135deg, var(--ink-900), var(--ink-700));
-    color: white;
-  }
+        <aside class="reveal" data-d="3">
+          <div class="lcard upload-card">
+            <div class="up-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></div>
+            <h3>New analysis</h3>
+            <p class="muted">Drop in a full-match video — broadcast, sideline or tripod. We handle the rest.</p>
+            <a class="btn btn-accent" style="width:100%;margin-top:14px" href={`${base}login/`}>Start a match</a>
+            <small class="up-fine">MP4 / MOV · up to 90 min · first match free</small>
+          </div>
+          <div class="lcard plan-card">
+            <span class="eyebrow">Pilot plan</span>
+            <div class="plan-row"><span>Matches this month</span><b>3 / 5</b></div>
+            <div class="plan-bar"><i style="width:60%"></i></div>
+            <a class="link" href={`${base}#start`}>Upgrade plan →</a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</KfLayout>
 
-  .dashboard-hero h1 {
-    margin: 16px 0 0;
-    font-size: clamp(2.6rem, 5vw, 4.2rem);
-    line-height: 0.98;
-  }
-
-  .dashboard-hero p {
-    margin: 18px 0 0;
-    max-width: 640px;
-    color: rgba(255, 255, 255, 0.76);
-    line-height: 1.75;
-  }
-
-  .dashboard-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .dashboard-panel {
-    padding: 28px;
-  }
-
-  .analysis-list {
-    display: grid;
-    gap: 14px;
-  }
-
-  .analysis-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    padding: 20px;
-    border-radius: 20px;
-    border: var(--border-subtle);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 244, 248, 0.88));
-  }
-
-  .analysis-row p {
-    margin: 0 0 8px;
-    color: var(--steel-700);
-    font-size: 0.8rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .analysis-row h3 {
-    margin: 0;
-    color: var(--ink-900);
-    font-size: 1.16rem;
-  }
-
-  .analysis-meta {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-  }
-
-  .analysis-meta span {
-    color: var(--slate-500);
-  }
-
-  .analysis-meta a {
-    color: var(--steel-700);
-    font-weight: 800;
-  }
-
-  @media (max-width: 860px) {
-    .dashboard-hero,
-    .analysis-row {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .analysis-meta {
-      justify-content: space-between;
-    }
-  }
+<style is:global>
+  .page-shell { padding: 120px 0 90px; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .page-head h1 { font-size: clamp(30px, 4vw, 44px); margin-top: 12px; }
+  .page-head p { margin-top: 10px; }
+  .link { color: var(--accent); font-weight: 600; font-size: 14px; }
+  .lcard { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--sh-sm); }
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 32px; }
+  .stat-card { padding: 20px 22px; display: flex; flex-direction: column; gap: 8px; }
+  .stat-card .sk { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+  .stat-card .sv { font-family: var(--font-display); font-size: 28px; font-weight: 500; }
+  .dash-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 24px; margin-top: 40px; align-items: start; }
+  .block-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+  .block-head h2 { font-size: 22px; font-weight: 600; }
+  .match-list { display: flex; flex-direction: column; gap: 12px; }
+  .match-row { display: flex; align-items: center; gap: 16px; padding: 14px 16px; transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s; }
+  .match-row:hover { transform: translateY(-2px); box-shadow: var(--sh); border-color: rgba(16,24,34,.16); }
+  .mthumb { width: 54px; height: 40px; border-radius: 9px; flex: none; background: linear-gradient(160deg,#13402b,#0c2a1d); position: relative; overflow: hidden; }
+  .mthumb span { position: absolute; inset: 8px; border: 1px solid rgba(255,255,255,.18); border-radius: 5px; }
+  .mthumb::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.18); }
+  .mmeta { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .mmeta b { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+  .mmeta .vs { color: var(--text-3); font-weight: 500; }
+  .mmeta small { color: var(--text-3); font-size: 12.5px; }
+  .mscore { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text); }
+  .mstatus { font-size: 11.5px; font-weight: 600; padding: 5px 10px; border-radius: 999px; }
+  .mstatus.ok { color: var(--green-deep); background: rgba(60,158,108,.12); }
+  .mstatus.wait { color: #B5792A; background: rgba(217,138,61,.14); }
+  .upload-card { padding: 24px; }
+  .up-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: var(--accent); background: var(--accent-soft); margin-bottom: 16px; }
+  .upload-card h3 { font-size: 18px; font-weight: 600; }
+  .upload-card p { font-size: 14px; margin-top: 8px; }
+  .up-fine { display: block; margin-top: 12px; color: var(--text-3); font-size: 12px; text-align: center; }
+  .plan-card { padding: 22px; margin-top: 16px; }
+  .plan-row { display: flex; justify-content: space-between; align-items: baseline; margin: 14px 0 10px; font-size: 14px; color: var(--text-2); }
+  .plan-row b { font-family: var(--font-display); font-size: 16px; color: var(--text); }
+  .plan-bar { height: 8px; border-radius: 5px; background: var(--bg-soft); border: 1px solid var(--border-2); overflow: hidden; margin-bottom: 14px; }
+  .plan-bar i { display: block; height: 100%; background: var(--grad); }
+  @media (max-width: 900px) { .stat-row { grid-template-columns: repeat(2, 1fr); } .dash-grid { grid-template-columns: 1fr; } }
 </style>

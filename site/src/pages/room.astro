@@ -1,0 +1,124 @@
+---
+import KfLayout from "../layouts/KfLayout.astro";
+const base = import.meta.env.BASE_URL;
+
+const clips = [
+  { t: "12:04", title: "Final-third entry", tag: "Build-up" },
+  { t: "34:51", title: "High press regain", tag: "Out of poss." },
+  { t: "61:18", title: "Goal — #11", tag: "Transition" },
+  { t: "77:40", title: "Switch of play", tag: "Progression" },
+];
+const leaders = [
+  { id: "#12", v: 78, w: 100 }, { id: "#7", v: 64, w: 82 }, { id: "#3", v: 59, w: 74 }, { id: "#9", v: 51, w: 64 },
+];
+---
+<KfLayout title="Match room — Korner Flag" active="Match room">
+  <section class="page-shell room-page">
+    <div class="container">
+      <div class="page-head reveal in">
+        <div>
+          <span class="eyebrow">Match room</span>
+          <h1>NC State <span class="vs2">vs</span> Washington</h1>
+          <p class="muted">Apr 6, 2026 · Full match · Generated from sideline footage</p>
+        </div>
+        <div class="room-actions">
+          <a class="btn btn-ghost" href={`${base}matches/`}>← All matches</a>
+          <a class="btn btn-primary" href="#">Share report</a>
+        </div>
+      </div>
+
+      <div class="room reveal" data-d="1" style="margin-top:28px">
+        <div class="room-top">
+          <div class="board-dots"><i></i><i></i><i></i></div>
+          <div class="board-title">NC State vs Washington · <b>Final Review</b></div>
+          <span class="room-chip" style="margin-left:auto">1–0 · 92:14</span>
+        </div>
+        <div class="room-grid">
+          <div class="room-main">
+            <div class="room-video" id="room-pitch">
+              <div class="room-play"><button aria-label="Play"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21 6 3"/></svg></button></div>
+              <div class="room-chips"><span class="room-chip">Tracking</span><span class="room-chip">Passing</span><span class="room-chip">Heat zones</span></div>
+            </div>
+            <div class="room-tl"><span class="t">35:02</span><div class="track"><i></i><span class="m" style="left:24%"></span><span class="m" style="left:52%"></span><span class="m" style="left:78%"></span></div><span class="t">92:14</span></div>
+
+            <div class="room-metrics">
+              <div class="rm"><span class="l">Passes</span><span class="v">413</span></div>
+              <div class="rm"><span class="l">Completion</span><span class="v">83%</span></div>
+              <div class="rm"><span class="l">Distance</span><span class="v">67.4 km</span></div>
+              <div class="rm"><span class="l">Final-third entries</span><span class="v">9</span></div>
+            </div>
+          </div>
+
+          <div class="room-side">
+            <div>
+              <div class="panel-h">Possession</div>
+              <div class="poss-row"><span class="v">54%<span style="font-size:11px;color:var(--on-ink-mute);font-family:var(--font-body);font-weight:500;margin-left:6px">NC STATE</span></span><span class="v dim">46%</span></div>
+              <div class="poss-bar"><i style="width:54%"></i><i style="width:46%"></i></div>
+            </div>
+            <div>
+              <div class="panel-h">Passing leaders</div>
+              {leaders.map((l) => (
+                <div class="lead-row"><span class="id">{l.id}</span><span class="bar"><i style={`width:${l.w}%`}></i></span><span class="n">{l.v}</span></div>
+              ))}
+            </div>
+            <div>
+              <div class="panel-h">Team heatmap</div>
+              <div class="room-heat" id="room-heat"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="clips-block reveal" data-d="2">
+        <div class="block-head"><h2>Flagged clips</h2><span class="muted" style="font-size:14px">{clips.length} review moments</span></div>
+        <div class="clips-grid">
+          {clips.map((c) => (
+            <a class="lcard clip-card" href="#">
+              <div class="clip-thumb"><span class="clip-pitch"></span><span class="clip-play"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21 6 3"/></svg></span><span class="clip-t">{c.t}</span></div>
+              <div class="clip-body"><b>{c.title}</b><span class="clip-tag">{c.tag}</span></div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+</KfLayout>
+
+<style is:global>
+  .room-page .page-head h1 { font-size: clamp(28px, 4vw, 42px); }
+  .vs2 { color: var(--text-3); font-weight: 500; }
+  .room-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .room-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-top: 18px; background: var(--ink-line-2); border-radius: 12px; overflow: hidden; }
+  .rm { background: var(--ink-2); padding: 14px 16px; display: flex; flex-direction: column; gap: 5px; }
+  .rm .l { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-ink-mute); }
+  .rm .v { font-family: var(--font-display); font-size: 18px; font-weight: 500; color: #fff; }
+  .room-heat { height: 120px; margin-top: 10px; border-radius: 10px; position: relative; overflow: hidden; background: #0E2018; border: 1px solid var(--ink-line-2); }
+  .clips-block { margin-top: 44px; }
+  .clips-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
+  .clip-card { overflow: hidden; transition: transform .22s var(--ease), box-shadow .22s var(--ease); }
+  .clip-card:hover { transform: translateY(-3px); box-shadow: var(--sh); }
+  .clip-thumb { position: relative; aspect-ratio: 16/10; background: linear-gradient(160deg,#13402b,#0c2a1d); }
+  .clip-pitch { position: absolute; inset: 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 5px; }
+  .clip-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); display: grid; place-items: center; }
+  .clip-t { position: absolute; bottom: 10px; right: 10px; font-family: var(--font-display); font-size: 11px; color: #fff; background: rgba(14,24,34,.55); padding: 3px 7px; border-radius: 6px; }
+  .clip-body { padding: 13px 14px 15px; }
+  .clip-body b { font-family: var(--font-display); font-weight: 600; font-size: 14.5px; display: block; }
+  .clip-tag { font-size: 11.5px; font-weight: 600; color: var(--text-3); }
+  @media (max-width: 900px) { .clips-grid { grid-template-columns: repeat(2, 1fr); } .room-metrics { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<script is:inline>
+  (function () {
+    function paintHeat(el, blobs) { if (!el) return; blobs.forEach(([x,y,r,c,o]) => { const d = document.createElement("div"); d.style.cssText = `position:absolute;left:${x}%;top:${y}%;width:${r}px;height:${r}px;transform:translate(-50%,-50%);border-radius:50%;filter:blur(13px);background:radial-gradient(circle,${c} 0%,transparent 70%);opacity:${o}`; el.appendChild(d); }); }
+    paintHeat(document.getElementById("room-heat"), [[26,40,58,"#B24A36",.75],[42,62,68,"#D98A3D",.6],[62,46,52,"#4F86C6",.5],[22,74,46,"#E8C76B",.5],[74,54,46,"#46A069",.45]]);
+    const ns = "http://www.w3.org/2000/svg";
+    const el = document.getElementById("room-pitch");
+    if (el) { const s = document.createElementNS(ns, "svg"); s.setAttribute("viewBox","0 0 200 112"); s.setAttribute("preserveAspectRatio","xMidYMid slice"); s.style.cssText="position:absolute;inset:0;width:100%;height:100%";
+      const ln=a=>{const e=document.createElementNS(ns,"rect");e.setAttribute("fill","none");e.setAttribute("stroke","rgba(255,255,255,.13)");e.setAttribute("stroke-width","1");for(const k in a)e.setAttribute(k,a[k]);return e;};
+      s.appendChild(ln({x:12,y:9,width:176,height:94,rx:3}));
+      const mid=document.createElementNS(ns,"line");mid.setAttribute("x1",100);mid.setAttribute("y1",9);mid.setAttribute("x2",100);mid.setAttribute("y2",103);mid.setAttribute("stroke","rgba(255,255,255,.13)");mid.setAttribute("stroke-width","1");s.appendChild(mid);
+      const c=document.createElementNS(ns,"circle");c.setAttribute("cx",100);c.setAttribute("cy",56);c.setAttribute("r",17);c.setAttribute("fill","none");c.setAttribute("stroke","rgba(255,255,255,.13)");c.setAttribute("stroke-width","1");s.appendChild(c);
+      el.prepend(s);
+    }
+  })();
+</script>

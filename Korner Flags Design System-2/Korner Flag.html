@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Korner Flag — Coach-ready match analysis from existing footage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav" id="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="#top">
+      <img src="assets/logo.png" alt="Korner Flag logo">
+      <b>Korner Flag</b>
+    </a>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">What coaches get</a>
+      <a href="#room">Match room</a>
+      <a href="#start">Pricing</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost btn-sm nav-free" href="#start">Free one-match analysis</a>
+      <a class="btn btn-primary btn-sm" href="#start">Analyze a match
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="container hero-inner">
+    <span class="hero-pill reveal in"><span class="tag">Free</span> One-match analysis, on us</span>
+    <h1 class="reveal in" data-d="1">Coach-ready match analysis from <span class="accent">existing footage.</span></h1>
+    <p class="hero-sub reveal in" data-d="2">Korner Flag turns game video into passing, possession, movement, heatmaps, and reviewable clips — without wearables or extra setup.</p>
+    <div class="hero-ctas reveal in" data-d="3">
+      <a class="btn btn-primary btn-lg" href="#start">Analyze a match
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a class="btn btn-ghost btn-lg" href="#start">Start with a free one-match analysis</a>
+    </div>
+    <div class="hero-note reveal in" data-d="4">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>No wearables</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>No player setup</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Coach-ready output</span>
+    </div>
+
+    <!-- animated match board -->
+    <div class="board-wrap reveal in" data-d="4">
+      <div class="board" id="kf-board">
+        <div class="board-glow"></div>
+        <div class="board-top">
+          <div class="board-dots"><i></i><i></i><i></i></div>
+          <div class="board-title">Match Room · <b>NC State vs Washington</b></div>
+          <div class="board-modes">
+            <button class="board-mode on" data-mode="passing">Passing</button>
+            <button class="board-mode" data-mode="tracking">Tracking</button>
+            <button class="board-mode" data-mode="heat">Heat</button>
+          </div>
+        </div>
+        <div class="board-stage">
+          <div class="board-label" id="kf-label">Switch of play</div>
+        </div>
+        <div class="board-stats">
+          <div class="bstat bposs">
+            <span class="l">Possession</span>
+            <div class="bposs-bar"><i id="kf-poss-a" style="width:54%"></i><i id="kf-poss-b" style="width:46%"></i></div>
+          </div>
+          <div class="bstat"><span class="l">Passes</span><span class="v" id="kf-passes">412</span></div>
+          <div class="bstat"><span class="l">Distance</span><span class="v">67.4 km</span></div>
+          <div class="btime">
+            <div class="btime-row"><span id="kf-time-now">35:02</span><span>92:14</span></div>
+            <div class="btime-track">
+              <div class="btime-fill" id="kf-time-fill" style="width:38%"></div>
+              <span class="btime-mark" style="left:22%"></span>
+              <span class="btime-mark" style="left:48%"></span>
+              <span class="btime-mark" style="left:71%"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- floating cards -->
+      <div class="board-float float-passes">
+        <div class="ttl">Pass completion</div>
+        <div class="n">83%</div>
+        <div class="d">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          +6% vs last match
+        </div>
+      </div>
+      <div class="board-float float-heat">
+        <div class="ttl">Heatmap · Team</div>
+        <div class="hp" id="kf-minheat"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">How it works</span>
+      <h2>From match footage to a coach-ready room.</h2>
+      <p>Three steps. No hardware, no player tagging — just the video you already have.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal" data-d="1">
+        <div class="step-n">STEP 01</div>
+        <div class="step-vis">
+          <div style="position:absolute;inset:18px;border:1.5px dashed rgba(255,255,255,.18);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7FB4FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            <span style="font-family:'Space Grotesk';font-size:11px;color:rgba(255,255,255,.5)">match_full.mp4</span>
+          </div>
+        </div>
+        <h3>Upload existing footage</h3>
+        <p>Send the game video you already record — broadcast, sideline, or tripod. One file is all it takes.</p>
+        <span class="step-line"></span>
+      </div>
+      <div class="step reveal" data-d="2">
+        <div class="step-n">STEP 02</div>
+        <div class="step-vis" id="how-pitch"></div>
+        <h3>Korner Flag analyzes the match</h3>
+        <p>We track movement, passing and possession across the footage — turning raw video into structured tactical data.</p>
+        <span class="step-line"></span>
+      </div>
+      <div class="step reveal" data-d="3">
+        <div class="step-n">STEP 03</div>
+        <div class="step-vis">
+          <div style="position:absolute;inset:16px;display:flex;flex-direction:column;gap:7px">
+            <div style="flex:1;border-radius:7px;background:linear-gradient(160deg,#10202C,#0E2018);border:1px solid rgba(255,255,255,.07);position:relative">
+              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21 6 3"/></svg></div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <div style="flex:1;height:7px;border-radius:4px;background:linear-gradient(90deg,#3C9E6C,#2C6AD4)"></div>
+              <div style="width:30%;height:7px;border-radius:4px;background:rgba(255,255,255,.14)"></div>
+            </div>
+          </div>
+        </div>
+        <h3>Review the match room</h3>
+        <p>Open a clean tactical room — video, stats and clips side by side, ready to share with your staff.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHAT COACHES GET ============ -->
+<section class="section" id="features" style="padding-top:0">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">What coaches get</span>
+      <h2>Every surface a review meeting needs.</h2>
+      <p>Video-first analysis with supporting metrics — the detail that drives a tactical conversation, nothing that clutters it.</p>
+    </div>
+    <div class="features">
+      <div class="feature reveal" data-d="1">
+        <div class="feature-vis">
+          <div style="position:absolute;inset:16px;display:flex;flex-direction:column;justify-content:center;gap:12px">
+            <div style="height:8px;border-radius:5px;display:flex;overflow:hidden;background:rgba(255,255,255,.1)"><i style="width:54%;background:#2C6AD4"></i><i style="width:46%;background:rgba(255,255,255,.22)"></i></div>
+            <div style="display:flex;justify-content:space-between;font-family:'Space Grotesk';font-size:11px;color:rgba(255,255,255,.6)"><span>54%</span><span>46%</span></div>
+          </div>
+        </div>
+        <div class="feature-body">
+          <h3>Passing &amp; possession</h3>
+          <p>See how the ball was circulated, which players linked phases, and where possession broke down.</p>
+          <span class="feature-tag">Pass volume · completion · combinations</span>
+        </div>
+      </div>
+      <div class="feature reveal" data-d="2">
+        <div class="feature-vis">
+          <div style="position:absolute;inset:16px;display:flex;flex-direction:column;justify-content:center;gap:9px">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Space Grotesk';font-size:10px;color:rgba(255,255,255,.7);width:22px">#7</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.1)"><i style="display:block;width:100%;height:100%;border-radius:3px;background:linear-gradient(90deg,#3F86E0,#2C6AD4)"></i></div></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Space Grotesk';font-size:10px;color:rgba(255,255,255,.7);width:22px">#12</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.1)"><i style="display:block;width:88%;height:100%;border-radius:3px;background:linear-gradient(90deg,#3F86E0,#2C6AD4)"></i></div></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Space Grotesk';font-size:10px;color:rgba(255,255,255,.7);width:22px">#4</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.1)"><i style="display:block;width:72%;height:100%;border-radius:3px;background:linear-gradient(90deg,#3F86E0,#2C6AD4)"></i></div></div>
+          </div>
+        </div>
+        <div class="feature-body">
+          <h3>Movement &amp; distance</h3>
+          <p>Distance covered and movement load by player, so you can see who carried the work and where.</p>
+          <span class="feature-tag">Distance · movement load · zones</span>
+        </div>
+      </div>
+      <div class="feature reveal" data-d="3">
+        <div class="feature-vis" id="feat-heat"></div>
+        <div class="feature-body">
+          <h3>Heatmaps</h3>
+          <p>Team positioning maps that reveal buildup patterns, overloads and final-third activity at a glance.</p>
+          <span class="feature-tag">Team &amp; zone heatmaps</span>
+        </div>
+      </div>
+      <div class="feature reveal" data-d="4">
+        <div class="feature-vis">
+          <div style="position:absolute;inset:16px;display:flex;flex-direction:column;justify-content:center;gap:12px">
+            <div style="display:flex;align-items:center;justify-content:center;gap:0;height:30px;border-radius:7px;background:linear-gradient(160deg,#10202C,#0E2018);border:1px solid rgba(255,255,255,.07)"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21 6 3"/></svg></div>
+            <div style="position:relative;height:5px;border-radius:3px;background:rgba(255,255,255,.1)"><i style="position:absolute;left:0;top:0;bottom:0;width:40%;border-radius:3px;background:linear-gradient(90deg,#3C9E6C,#2C6AD4)"></i><span style="position:absolute;left:30%;top:50%;width:6px;height:6px;transform:translate(-50%,-50%) rotate(45deg);background:#fff;border-radius:1px"></span><span style="position:absolute;left:62%;top:50%;width:6px;height:6px;transform:translate(-50%,-50%) rotate(45deg);background:#fff;border-radius:1px"></span></div>
+          </div>
+        </div>
+        <div class="feature-body">
+          <h3>Reviewable clips</h3>
+          <p>Jump straight to the moments that matter, mark them, and share a clean set with your players.</p>
+          <span class="feature-tag">Clip markers · timeline · sharing</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MATCH ROOM PREVIEW ============ -->
+<section class="section" id="room" style="padding-top:0">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">The match room</span>
+      <h2>Where the analysis comes together.</h2>
+      <p>One calm surface for your review meeting — footage, possession, passing and movement, side by side.</p>
+    </div>
+    <div class="room reveal" data-d="1">
+      <div class="room-top">
+        <div class="board-dots"><i></i><i></i><i></i></div>
+        <div class="board-title">NC State vs Washington · <b>Final Review</b></div>
+        <span class="room-chip" style="margin-left:auto">Demo data</span>
+      </div>
+      <div class="room-grid">
+        <div class="room-main">
+          <div class="room-video" id="room-pitch">
+            <div class="room-play"><button aria-label="Play"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21 6 3"/></svg></button></div>
+            <div class="room-chips"><span class="room-chip">Tracking</span><span class="room-chip">Passing</span><span class="room-chip">Heat zones</span></div>
+          </div>
+          <div class="room-tl">
+            <span class="t">35:02</span>
+            <div class="track"><i></i><span class="m" style="left:24%"></span><span class="m" style="left:52%"></span><span class="m" style="left:78%"></span></div>
+            <span class="t">92:14</span>
+          </div>
+        </div>
+        <div class="room-side">
+          <div>
+            <div class="panel-h">Possession</div>
+            <div class="poss-row"><span class="v">54%<span style="font-size:11px;color:var(--on-ink-mute);font-family:var(--font-body);font-weight:500;margin-left:6px">NC STATE</span></span><span class="v dim">46%</span></div>
+            <div class="poss-bar"><i style="width:54%"></i><i style="width:46%"></i></div>
+          </div>
+          <div>
+            <div class="panel-h">Passing leaders</div>
+            <div class="lead-row"><span class="id">#12</span><span class="bar"><i style="width:100%"></i></span><span class="n">78</span></div>
+            <div class="lead-row"><span class="id">#7</span><span class="bar"><i style="width:82%"></i></span><span class="n">64</span></div>
+            <div class="lead-row"><span class="id">#3</span><span class="bar"><i style="width:74%"></i></span><span class="n">59</span></div>
+          </div>
+          <div>
+            <div class="panel-h">Team distance</div>
+            <div class="poss-row"><span class="v">67.4<span style="font-size:12px;color:var(--on-ink-soft);font-family:var(--font-body);font-weight:500;margin-left:4px">km</span></span><span style="font-size:12px;color:var(--green);font-weight:600">8 review moments</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA FOOTER ============ -->
+<section class="cta-section" id="start">
+  <div class="container">
+    <div class="cta reveal">
+      <div class="cta-field" id="cta-pitch"></div>
+      <h2>Send one match. Get a coach-ready analysis.</h2>
+      <p>Try Korner Flag on a single game — free. See your footage turned into passing, possession, movement and clips your staff can actually use.</p>
+      <div class="cta-ctas">
+        <a class="btn btn-accent btn-lg" href="#">Start with a free one-match analysis
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a class="btn btn-onink btn-lg" href="#room">See the match room</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="foot">
+  <div class="container foot-inner">
+    <a class="brand" href="#top"><img src="assets/logo.png" alt="" style="width:30px;height:30px"><b style="font-size:17px">Korner Flag</b></a>
+    <nav class="foot-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#room">Match room</a>
+      <a href="#start">Free analysis</a>
+    </nav>
+    <small>© 2026 Korner Flag · Built for coaches</small>
+  </div>
+</footer>
+
+<script src="field.js"></script>
+<script>
+  // nav background on scroll
+  const nav = document.getElementById("nav");
+  const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 16);
+  onScroll(); window.addEventListener("scroll", onScroll, { passive: true });
+
+  // scroll reveal
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+  }, { threshold: 0.14, rootMargin: "0px 0px -8% 0px" });
+  document.querySelectorAll(".reveal:not(.in)").forEach(el => io.observe(el));
+
+  // mini heat pitches (decorative)
+  function paintHeat(el, blobs) {
+    if (!el) return;
+    blobs.forEach(([x, y, r, c, o]) => {
+      const d = document.createElement("div");
+      d.style.cssText = `position:absolute;left:${x}%;top:${y}%;width:${r}px;height:${r}px;transform:translate(-50%,-50%);border-radius:50%;filter:blur(12px);background:radial-gradient(circle,${c} 0%,transparent 70%);opacity:${o}`;
+      el.appendChild(d);
+    });
+  }
+  paintHeat(document.getElementById("kf-minheat"), [[26,40,46,"#B24A36",.8],[40,62,54,"#D98A3D",.6],[60,46,40,"#4F86C6",.55],[20,72,38,"#E8C76B",.5]]);
+  paintHeat(document.getElementById("feat-heat"), [[28,38,60,"#B24A36",.7],[42,64,70,"#D98A3D",.55],[64,46,52,"#4F86C6",.5],[22,74,46,"#E8C76B",.45],[72,62,44,"#5B9BD8",.4]]);
+
+  // mini tactical pitch (decorative SVG: lines + dots + a pass line)
+  function paintPitch(el, opts) {
+    if (!el) return;
+    opts = opts || {};
+    const ns = "http://www.w3.org/2000/svg";
+    const s = document.createElementNS(ns, "svg");
+    s.setAttribute("viewBox", "0 0 200 120");
+    s.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    s.style.cssText = "position:absolute;inset:0;width:100%;height:100%";
+    const ln = (a) => { const e = document.createElementNS(ns, "rect"); e.setAttribute("fill","none"); e.setAttribute("stroke","rgba(255,255,255,.14)"); e.setAttribute("stroke-width","1"); for(const k in a) e.setAttribute(k,a[k]); return e; };
+    s.appendChild(ln({x:12,y:10,width:176,height:100,rx:3}));
+    const mid = document.createElementNS(ns,"line"); mid.setAttribute("x1",100);mid.setAttribute("y1",10);mid.setAttribute("x2",100);mid.setAttribute("y2",110);mid.setAttribute("stroke","rgba(255,255,255,.14)");mid.setAttribute("stroke-width","1"); s.appendChild(mid);
+    const c = document.createElementNS(ns,"circle"); c.setAttribute("cx",100);c.setAttribute("cy",60);c.setAttribute("r",18);c.setAttribute("fill","none");c.setAttribute("stroke","rgba(255,255,255,.14)");c.setAttribute("stroke-width","1"); s.appendChild(c);
+    if (opts.dots) {
+      const pts = [[46,40],[78,70],[120,44],[150,78]];
+      const path = document.createElementNS(ns,"polyline");
+      path.setAttribute("points", pts.map(p=>p.join(",")).join(" "));
+      path.setAttribute("fill","none"); path.setAttribute("stroke","rgba(120,180,250,.6)"); path.setAttribute("stroke-width","1.4"); path.setAttribute("stroke-dasharray","3 3");
+      s.appendChild(path);
+      pts.forEach((p,i)=>{ const d=document.createElementNS(ns,"circle"); d.setAttribute("cx",p[0]);d.setAttribute("cy",p[1]);d.setAttribute("r",4.5);d.setAttribute("fill","#3F86E0");d.setAttribute("stroke","#cfe0f7");d.setAttribute("stroke-width","1"); s.appendChild(d); });
+    }
+    el.prepend(s);
+  }
+  paintPitch(document.getElementById("how-pitch"), { dots: true });
+  paintPitch(document.getElementById("room-pitch"), { dots: false });
+  paintPitch(document.getElementById("cta-pitch"), { dots: false });
+</script>
+</body>
+</html>

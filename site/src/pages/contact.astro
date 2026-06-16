@@ -1,0 +1,96 @@
+---
+import KfLayout from "../layouts/KfLayout.astro";
+const base = import.meta.env.BASE_URL;
+const perks = [
+  "Full annotated match room — video, stats and clips",
+  "Passing, possession, movement and team heatmaps",
+  "A set of flagged review clips for your staff",
+  "No wearables, no player setup — just your footage",
+];
+---
+<KfLayout title="Request a free analysis — Korner Flag">
+  <section class="page-shell contact">
+    <div class="container contact-grid">
+      <div class="contact-copy reveal in">
+        <span class="eyebrow">Free one-match analysis</span>
+        <h1>Send one match.<br>Get a coach-ready analysis.</h1>
+        <p class="muted">Tell us about your team and the game you want analyzed. We'll reply with a secure upload link and turn it around for your next review meeting — on us.</p>
+        <ul class="perks">
+          {perks.map((p) => (
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>{p}</li>
+          ))}
+        </ul>
+        <div class="contact-meta">
+          <span><b>Email</b> hello@kornerflag.com</span>
+          <span><b>Pilot</b> High-school &amp; club programs</span>
+        </div>
+      </div>
+
+      <div class="lcard contact-card reveal" data-d="1">
+        <form id="contact-form" novalidate>
+          <div class="frow">
+            <label>Name<input name="name" type="text" placeholder="Coach name" required /></label>
+            <label>Email<input name="email" type="email" placeholder="coach@school.edu" required /></label>
+          </div>
+          <label>Team or program<input name="org" type="text" placeholder="NC State Women's Soccer" required /></label>
+          <div class="frow">
+            <label>Level
+              <select name="level">
+                <option>High school</option><option>Club / academy</option><option>College</option><option>Other</option>
+              </select>
+            </label>
+            <label>Match date<input name="date" type="text" placeholder="Apr 6, 2026" /></label>
+          </div>
+          <label>Anything we should know?<textarea name="notes" rows="3" placeholder="Opponent, camera angle, what you want to focus on…"></textarea></label>
+          <button type="submit" class="btn btn-accent btn-lg" style="width:100%">Request free analysis
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+          <small class="fine">We'll only use this to set up your analysis. No spam.</small>
+        </form>
+        <div class="contact-done" id="contact-done" hidden>
+          <div class="done-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <h3>Request received.</h3>
+          <p class="muted">Thanks — we'll email you a secure upload link shortly. Keep an eye on your inbox.</p>
+          <a class="btn btn-ghost" href={base}>Back to home</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</KfLayout>
+
+<style is:global>
+  .contact-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px; align-items: center; }
+  .contact-copy h1 { font-size: clamp(30px, 4.4vw, 48px); line-height: 1.05; margin-top: 14px; }
+  .contact-copy > p { margin-top: 18px; font-size: 16.5px; line-height: 1.6; max-width: 46ch; }
+  .perks { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; }
+  .perks li { display: flex; align-items: flex-start; gap: 11px; font-size: 15px; color: var(--text); }
+  .perks svg { width: 18px; height: 18px; color: var(--green); flex: none; margin-top: 2px; }
+  .contact-meta { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--border); }
+  .contact-meta span { font-size: 14px; color: var(--text-2); }
+  .contact-meta b { display: block; font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
+  .contact-card { padding: 30px; }
+  .contact-card form { display: flex; flex-direction: column; gap: 16px; }
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .contact-card label { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+  .contact-card input, .contact-card select, .contact-card textarea {
+    font-family: var(--font-body); font-size: 15px; color: var(--text); padding: 12px 14px; border-radius: 11px;
+    border: 1px solid var(--border); background: var(--bg-soft); outline: none; transition: border-color .2s, box-shadow .2s; resize: vertical; }
+  .contact-card input:focus, .contact-card select:focus, .contact-card textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .contact-card .fine { color: var(--text-3); font-size: 12px; text-align: center; }
+  .contact-done { text-align: center; padding: 18px 6px; }
+  .done-badge { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 16px; color: #fff; background: var(--grad); }
+  .done-badge svg { width: 26px; height: 26px; }
+  .contact-done h3 { font-size: 22px; font-weight: 600; }
+  .contact-done p { margin: 10px auto 20px; max-width: 36ch; }
+  @media (max-width: 860px) { .contact-grid { grid-template-columns: 1fr; gap: 36px; } .frow { grid-template-columns: 1fr; } }
+</style>
+
+<script is:inline>
+  const f = document.getElementById("contact-form");
+  if (f) f.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!f.checkValidity()) { f.reportValidity(); return; }
+    f.style.display = "none";
+    document.getElementById("contact-done").hidden = false;
+  });
+</script>

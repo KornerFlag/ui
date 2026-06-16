@@ -1,0 +1,87 @@
+---
+const base = import.meta.env.BASE_URL;
+const {
+  title = "Korner Flag — Coach-ready match analysis",
+  description = "Korner Flag turns existing match footage into passing, possession, movement, heatmaps and reviewable clips — no wearables, no player setup.",
+  active = "",
+} = Astro.props;
+
+const navLinks = [
+  { label: "How it works", href: `${base}#how` },
+  { label: "Features", href: `${base}#features` },
+  { label: "Match room", href: `${base}room/` },
+  { label: "Dashboard", href: `${base}dashboard/` },
+];
+const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="icon" href={`${base}kf/logo.png`} />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href={`${base}kf/styles.css`} />
+</head>
+<body>
+  <header class="nav" id="nav">
+    <div class="container nav-inner">
+      <a class="brand" href={base}>
+        <img src={`${base}kf/logo.png`} alt="Korner Flag logo" />
+        <b>Korner Flag</b>
+      </a>
+      <nav class="nav-links">
+        {navLinks.map((n) => (
+          <a href={n.href} style={active === n.label ? "color:var(--text);background:rgba(16,24,34,.05)" : ""}>{n.label}</a>
+        ))}
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-ghost btn-sm nav-free" href={`${base}login/`}>Sign in</a>
+        <a class="btn btn-primary btn-sm" href={`${base}login/`} set:html={`Analyze a match ${arrow}`}></a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <style is:global>
+    /* shared app-page utilities (every page clears the fixed 76px nav) */
+    .page-shell { padding: 124px 0 90px; }
+    .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+    .page-head h1 { font-size: clamp(30px, 4vw, 44px); margin-top: 12px; }
+    .page-head p { margin-top: 10px; }
+    .link { color: var(--accent); font-weight: 600; font-size: 14px; }
+    .lcard { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--sh-sm); }
+    .block-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+    .block-head h2 { font-size: 22px; font-weight: 600; }
+    @media (max-width: 720px) { .page-shell { padding-top: 104px; } }
+  </style>
+
+  <footer class="foot">
+    <div class="container foot-inner">
+      <a class="brand" href={base}><img src={`${base}kf/logo.png`} alt="" style="width:30px;height:30px" /><b style="font-size:17px">Korner Flag</b></a>
+      <nav class="foot-links">
+        <a href={`${base}#how`}>How it works</a>
+        <a href={`${base}#features`}>Features</a>
+        <a href={`${base}room/`}>Match room</a>
+        <a href={`${base}contact/`}>Free analysis</a>
+        <a href={`${base}login/`}>Sign in</a>
+      </nav>
+      <small>© 2026 Korner Flag · Built for coaches</small>
+    </div>
+  </footer>
+
+  <script is:inline>
+    const nav = document.getElementById("nav");
+    const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 16);
+    onScroll(); window.addEventListener("scroll", onScroll, { passive: true });
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.14, rootMargin: "0px 0px -8% 0px" });
+    document.querySelectorAll(".reveal:not(.in)").forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>
