@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'https://krishnaikgaunekar.github.io',
-  base: '/Korner-Flags_stats',
+  site: 'https://kornerflag.github.io',
+  base: '/ui',
   trailingSlash: 'always',
 });
