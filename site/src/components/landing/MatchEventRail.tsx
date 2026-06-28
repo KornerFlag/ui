@@ -4,7 +4,8 @@ import { matchSequence } from "@/data/matchSequence";
 // Compact event rail. Shows the events up to the current scroll state, newest
 // highlighted. Motion handles only the small enter/slide of each row.
 export default function MatchEventRail({ activeIndex }: { activeIndex: number }) {
-  const visible = matchSequence.slice(0, activeIndex + 1);
+  // show the most recent few events so the rail stays compact
+  const visible = matchSequence.slice(Math.max(0, activeIndex - 3), activeIndex + 1);
   const current = matchSequence[activeIndex];
   return (
     <div className="flex h-full flex-col gap-3 p-4">

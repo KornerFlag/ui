@@ -69,21 +69,23 @@ export default function TacticalPitch() {
         ))}
       </g>
 
-      {/* pass lines — drawn on via strokeDashoffset */}
+      {/* pass / shot / save lines — drawn on via strokeDashoffset */}
       <g fill="none" strokeLinecap="round">
         {passLines.map((p) => {
           const d = len(p.from, p.to);
+          const stroke = p.kind === "shot" ? "#E8C76B" : p.kind === "save" ? "#B6C1CE" : "#6FA8E8";
+          const width = p.kind === "shot" ? 1.5 : p.kind === "save" ? 1 : 1.2;
           return (
             <path
               key={p.id}
               className="kf-pass"
               data-pass={p.id}
               d={`M ${p.from.x} ${p.from.y} L ${p.to.x} ${p.to.y}`}
-              stroke={p.shot ? "#E8C76B" : "#6FA8E8"}
-              strokeWidth={p.shot ? "1.5" : "1.2"}
+              stroke={stroke}
+              strokeWidth={width}
               strokeDasharray={d}
               strokeDashoffset={d}
-              opacity={p.shot ? 0.95 : 0.85}
+              opacity={p.kind === "save" ? 0.7 : p.kind === "shot" ? 0.95 : 0.85}
             />
           );
         })}
@@ -95,18 +97,21 @@ export default function TacticalPitch() {
           const home = p.side === "home";
           const fill = home ? (p.key ? "#4F92EC" : "#3F86E0") : "#5C6B7A";
           return (
+            // outer <g> = scripted runs (transform); inner .kf-drift = continuous idle drift
             <g key={`${p.side}-${p.num}-${i}`} className="kf-player" data-num={p.num} data-side={p.side}>
-              {p.key && home && (
-                <circle cx={p.x} cy={p.y} r="4.6" fill="none" stroke="#6FA8E8" strokeWidth="0.5" opacity="0.5" />
-              )}
-              <circle cx={p.x} cy={p.y} r="3.4" fill={fill} stroke="rgba(255,255,255,0.85)" strokeWidth="0.4" />
-              <text
-                x={p.x} y={p.y + 1.1} textAnchor="middle" fontSize="3.1" fontWeight={600}
-                fill={home ? "#fff" : "#cdd5dd"} fontFamily="'Space Grotesk', sans-serif"
-                style={{ pointerEvents: "none" }}
-              >
-                {p.num}
-              </text>
+              <g className="kf-drift">
+                {p.key && home && (
+                  <circle cx={p.x} cy={p.y} r="4.6" fill="none" stroke="#6FA8E8" strokeWidth="0.5" opacity="0.5" />
+                )}
+                <circle cx={p.x} cy={p.y} r="3.4" fill={fill} stroke="rgba(255,255,255,0.85)" strokeWidth="0.4" />
+                <text
+                  x={p.x} y={p.y + 1.1} textAnchor="middle" fontSize="3.1" fontWeight={600}
+                  fill={home ? "#fff" : "#cdd5dd"} fontFamily="'Space Grotesk', sans-serif"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {p.num}
+                </text>
+              </g>
             </g>
           );
         })}

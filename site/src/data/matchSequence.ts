@@ -1,8 +1,8 @@
 // Korner Flag — scroll match-sequence data.
-// Single source of truth for the 5 scroll states (stats + events) AND the
-// pitch geometry (players, ball keyframes, pass lines, heatmap) that the
-// GSAP timeline animates. Pitch coordinate space is the SVG viewBox below:
-// 200 x 120 units, home attacking left -> right, goal at the right edge.
+// Single source of truth for the scroll states (stats + events) AND the pitch
+// geometry (players, ball keyframes, pass lines, heatmap) that the GSAP timeline
+// animates. Pitch coordinate space is the SVG viewBox below: 200 x 120 units,
+// home attacking left -> right, goal at the right edge.
 
 export const PITCH_VB = { w: 200, h: 120 };
 
@@ -21,78 +21,51 @@ export interface MatchState {
   event: string;
 }
 
-// The five scroll states. Stat values here are the discrete targets the
-// counters tween toward between states.
+// The scroll states. Stat values are the discrete targets the counters tween
+// toward between states. Sequence: build-up -> progression -> final third ->
+// shot -> keeper save -> rebound goal by #9.
 export const matchSequence: MatchState[] = [
   {
-    phase: "Build-up",
-    activeTab: "Tracking",
-    time: "12:08",
-    possession: "54%",
-    passes: 404,
-    distance: "66.8 km",
-    finalThirdEntries: 0,
-    reviewClips: 0,
-    lastPass: null,
-    event: "Center back receives",
+    phase: "Build-up", activeTab: "Tracking", time: "12:08",
+    possession: "54%", passes: 404, distance: "66.8 km",
+    finalThirdEntries: 0, reviewClips: 0, lastPass: null, event: "Center back receives",
   },
   {
-    phase: "First pass",
-    activeTab: "Passing",
-    time: "12:16",
-    possession: "56%",
-    passes: 405,
-    distance: "66.9 km",
-    finalThirdEntries: 0,
-    reviewClips: 0,
-    lastPass: "#4 → #6",
-    event: "Build-up pass",
+    phase: "First pass", activeTab: "Passing", time: "12:16",
+    possession: "56%", passes: 405, distance: "66.9 km",
+    finalThirdEntries: 0, reviewClips: 0, lastPass: "#4 → #6", event: "Build-up pass",
   },
   {
-    phase: "Progression",
-    activeTab: "Passing",
-    time: "12:24",
-    possession: "58%",
-    passes: 408,
-    distance: "67.1 km",
-    finalThirdEntries: 0,
-    reviewClips: 0,
-    lastPass: "#6 → #8",
-    event: "Line-breaking pass",
+    phase: "Progression", activeTab: "Passing", time: "12:24",
+    possession: "58%", passes: 408, distance: "67.1 km",
+    finalThirdEntries: 0, reviewClips: 0, lastPass: "#6 → #8", event: "Line-breaking pass",
   },
   {
-    phase: "Final third",
-    activeTab: "Passing",
-    time: "12:31",
-    possession: "60%",
-    passes: 410,
-    distance: "67.3 km",
-    finalThirdEntries: 1,
-    reviewClips: 0,
-    lastPass: "#8 → #11",
-    event: "Final-third entry",
+    phase: "Final third", activeTab: "Passing", time: "12:31",
+    possession: "60%", passes: 410, distance: "67.3 km",
+    finalThirdEntries: 1, reviewClips: 0, lastPass: "#8 → #11", event: "Final-third entry",
   },
   {
-    phase: "Goal",
-    activeTab: "Heat",
-    time: "12:38",
-    possession: "61%",
-    passes: 411,
-    distance: "67.4 km",
-    finalThirdEntries: 1,
-    reviewClips: 1,
-    lastPass: "#11 → Shot",
-    event: "Goal added to review clips",
+    phase: "Shot", activeTab: "Tracking", time: "12:36",
+    possession: "61%", passes: 411, distance: "67.4 km",
+    finalThirdEntries: 1, reviewClips: 0, lastPass: "#11 → Shot", event: "Shot from the left",
+  },
+  {
+    phase: "Save", activeTab: "Tracking", time: "12:38",
+    possession: "61%", passes: 411, distance: "67.5 km",
+    finalThirdEntries: 1, reviewClips: 0, lastPass: "Rebound", event: "Keeper parries — loose ball",
+  },
+  {
+    phase: "Goal", activeTab: "Heat", time: "12:41",
+    possession: "62%", passes: 412, distance: "67.6 km",
+    finalThirdEntries: 1, reviewClips: 1, lastPass: "#9 → Goal", event: "Goal — #9 finishes the rebound",
   },
 ];
 
 // ---- numeric counter targets, parsed once for the GSAP proxy tweens ----
 export interface Counters {
-  possession: number;  // percent
-  passes: number;
-  distance: number;    // km
-  finalThirdEntries: number;
-  reviewClips: number;
+  possession: number; passes: number; distance: number;
+  finalThirdEntries: number; reviewClips: number;
 }
 export const counterTargets: Counters[] = matchSequence.map((s) => ({
   possession: parseFloat(s.possession),
@@ -106,11 +79,7 @@ export const counterTargets: Counters[] = matchSequence.map((s) => ({
 
 export type Side = "home" | "away";
 export interface Player {
-  num: number;
-  side: Side;
-  x: number;
-  y: number;
-  key?: boolean; // involved in the sequence -> gets emphasis
+  num: number; side: Side; x: number; y: number; key?: boolean;
 }
 
 // Home (NC State) attacking left -> right; away (Washington) defending.
@@ -125,7 +94,7 @@ export const PLAYERS: Player[] = [
   { num: 10, side: "home", x: 100, y: 88 },
   { num: 7, side: "home", x: 150, y: 92 },
   { num: 11, side: "home", x: 150, y: 28, key: true },
-  { num: 9, side: "home", x: 174, y: 58 },
+  { num: 9, side: "home", x: 172, y: 58, key: true },
   // away — defensive block on the right
   { num: 5, side: "away", x: 120, y: 44 },
   { num: 6, side: "away", x: 126, y: 70 },
@@ -133,41 +102,56 @@ export const PLAYERS: Player[] = [
   { num: 2, side: "away", x: 168, y: 34 },
   { num: 3, side: "away", x: 168, y: 84 },
   { num: 8, side: "away", x: 138, y: 96 },
-  { num: 1, side: "away", x: 190, y: 60 },
+  { num: 1, side: "away", x: 191, y: 60 }, // keeper
 ];
 
-// Ball position at each of the 5 states (pitch coords).
+// Ball position at each state (pitch coords). Length === matchSequence.length.
 export const ballKeyframes: Array<{ x: number; y: number }> = [
-  { x: 38, y: 58 }, // at #4
-  { x: 72, y: 48 }, // at #6
-  { x: 104, y: 66 }, // at #8
-  { x: 150, y: 28 }, // at #11
-  { x: 192, y: 58 }, // shot -> goal
+  { x: 38, y: 58 },  // 0 at #4
+  { x: 72, y: 48 },  // 1 at #6
+  { x: 104, y: 66 }, // 2 at #8
+  { x: 150, y: 28 }, // 3 at #11
+  { x: 188, y: 50 }, // 4 shot -> near post
+  { x: 172, y: 72 }, // 5 keeper parry -> loose ball
+  { x: 192, y: 60 }, // 6 rebound goal
 ];
 
-// Pass lines, revealed at the given state index (draw-on via strokeDashoffset).
+// Pass / shot lines. Drawn on via strokeDashoffset, synced to ball travel.
 export interface PassLine {
   id: string;
   from: { x: number; y: number };
   to: { x: number; y: number };
-  revealAt: number; // state index
-  shot?: boolean;
+  revealAt: number;          // state index it draws on at
+  kind?: "pass" | "shot" | "save";
 }
 export const passLines: PassLine[] = [
-  { id: "p1", from: { x: 38, y: 58 }, to: { x: 72, y: 48 }, revealAt: 1 },
-  { id: "p2", from: { x: 72, y: 48 }, to: { x: 104, y: 66 }, revealAt: 2 },
-  { id: "p3", from: { x: 104, y: 66 }, to: { x: 150, y: 28 }, revealAt: 3 },
-  { id: "p4", from: { x: 150, y: 28 }, to: { x: 192, y: 58 }, revealAt: 4, shot: true },
+  { id: "p1", from: { x: 38, y: 58 }, to: { x: 72, y: 48 }, revealAt: 1, kind: "pass" },
+  { id: "p2", from: { x: 72, y: 48 }, to: { x: 104, y: 66 }, revealAt: 2, kind: "pass" },
+  { id: "p3", from: { x: 104, y: 66 }, to: { x: 150, y: 28 }, revealAt: 3, kind: "pass" },
+  { id: "p4", from: { x: 150, y: 28 }, to: { x: 188, y: 50 }, revealAt: 4, kind: "shot" },
+  { id: "psave", from: { x: 188, y: 50 }, to: { x: 172, y: 72 }, revealAt: 5, kind: "save" },
+  { id: "p5", from: { x: 172, y: 72 }, to: { x: 192, y: 60 }, revealAt: 6, kind: "shot" },
+];
+
+// Scripted runs for involved players (transform deltas on the outer player <g>),
+// applied on the scroll timeline at the given segment index (i -> i+1).
+export interface PlayerRun {
+  num: number; side: Side; atSegment: number; dx: number; dy: number;
+}
+export const playerRuns: PlayerRun[] = [
+  { num: 11, side: "home", atSegment: 2, dx: 4, dy: -4 },   // winger pushes high before receiving
+  { num: 9, side: "home", atSegment: 4, dx: 2, dy: 10 },    // striker gambles on the rebound
+  { num: 9, side: "home", atSegment: 5, dx: 16, dy: -4 },   // and finishes
 ];
 
 // Restrained green heatmap blobs, weighted to the attacking third.
 export const heatBlobs: Array<{ x: number; y: number; r: number; o: number }> = [
-  { x: 150, y: 30, r: 30, o: 0.55 },
-  { x: 168, y: 56, r: 34, o: 0.5 },
-  { x: 130, y: 64, r: 26, o: 0.4 },
-  { x: 178, y: 78, r: 24, o: 0.36 },
-  { x: 110, y: 50, r: 22, o: 0.3 },
-  { x: 188, y: 44, r: 20, o: 0.3 },
+  { x: 150, y: 30, r: 30, o: 0.85 },
+  { x: 172, y: 56, r: 36, o: 0.8 },
+  { x: 188, y: 58, r: 26, o: 0.75 },
+  { x: 130, y: 64, r: 26, o: 0.6 },
+  { x: 178, y: 80, r: 24, o: 0.55 },
+  { x: 110, y: 50, r: 22, o: 0.45 },
 ];
 
 export const TABS: Tab[] = ["Passing", "Tracking", "Heat", "Clips"];

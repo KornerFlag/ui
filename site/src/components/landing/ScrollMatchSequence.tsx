@@ -3,12 +3,12 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { AnimatePresence, motion } from "motion/react";
-import { Circle, Flag, Footprints } from "lucide-react";
+import { Circle, Flag, Footprints, Shield } from "lucide-react";
 import TacticalPitch from "./TacticalPitch";
 import MatchStatsStrip from "./MatchStatsStrip";
 import MatchEventRail from "./MatchEventRail";
 import {
-  matchSequence, counterTargets, passLines, ballKeyframes, TABS, type Counters,
+  matchSequence, counterTargets, passLines, ballKeyframes, playerRuns, TABS, type Counters,
 } from "@/data/matchSequence";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -56,7 +56,7 @@ export default function ScrollMatchSequence() {
 
     const updateScene = (progress: number) => {
       const idx = Math.min(matchSequence.length - 1, Math.floor(progress * matchSequence.length));
-      const nextPill = idx === matchSequence.length - 1 ? (progress < 0.94 ? "shot" : "goal") : null;
+      const nextPill = idx === 4 ? "shot" : idx === 5 ? "save" : idx === 6 ? "goal" : null;
       if (idx !== sceneRef.current.idx || nextPill !== sceneRef.current.pill) {
         sceneRef.current = { idx, pill: nextPill };
         setStateIndex(idx);
@@ -79,12 +79,13 @@ export default function ScrollMatchSequence() {
       const render = () => writeCounters(root, c);
       render();
 
+      const segs = matchSequence.length - 1; // 6
+
       const tl = gsap.timeline({
-        defaults: { ease: EASE },
         scrollTrigger: {
           trigger: root,
           start: "top top",
-          end: "+=350%",
+          end: `+=${segs * 110}%`,
           pin: stage,
           scrub: 1,
           onUpdate: (self) => updateScene(self.progress),
@@ -92,28 +93,44 @@ export default function ScrollMatchSequence() {
       });
 
       // timeline scrubber fill across the whole sequence
-      tl.fromTo("#kf-tl-fill", { width: "6%" }, { width: "100%", ease: "none", duration: 4 }, 0);
+      tl.fromTo("#kf-tl-fill", { width: "6%" }, { width: "100%", ease: "none", duration: segs }, 0);
 
-      for (let i = 0; i < matchSequence.length - 1; i++) {
+      // Ball and the line draw share identical start, duration and easing so the
+      // ball rides the tip of the line as it draws.
+      for (let i = 0; i < segs; i++) {
         const at = i;
+        const STEP = { duration: 1, ease: "power1.inOut" } as const;
         if (ball) {
-          tl.to(ball, { attr: { cx: ballKeyframes[i + 1].x, cy: ballKeyframes[i + 1].y }, duration: 1 }, at);
+          tl.to(ball, { attr: { cx: ballKeyframes[i + 1].x, cy: ballKeyframes[i + 1].y }, ...STEP }, at);
         }
         const pl = passLines.find((p) => p.revealAt === i + 1);
         if (pl) {
-          tl.to(`[data-pass="${pl.id}"]`, { strokeDashoffset: 0, ease: "power2.out", duration: 0.85 }, at + 0.08);
+          tl.to(`[data-pass="${pl.id}"]`, { strokeDashoffset: 0, ...STEP }, at);
         }
         const t = counterTargets[i + 1];
         tl.to(c, {
           possession: t.possession, passes: t.passes, distance: t.distance,
           finalThirdEntries: t.finalThirdEntries, reviewClips: t.reviewClips,
-          duration: 1, ease: "power1.inOut", onUpdate: render,
+          ...STEP, onUpdate: render,
         }, at);
+        // scripted player runs for this segment
+        playerRuns.filter((r) => r.atSegment === i).forEach((r) => {
+          tl.to(`.kf-player[data-num="${r.num}"][data-side="${r.side}"]`, { x: `+=${r.dx}`, y: `+=${r.dy}`, ...STEP }, at);
+        });
       }
 
-      // final state: heatmap reveal + ball settle + subtle goal pulse
-      tl.to("#kf-heat", { opacity: 1, ease: "power2.out", duration: 0.9 }, 3.05);
-      if (ball) tl.to(ball, { attr: { r: 3.1 }, duration: 0.22, yoyo: true, repeat: 1, ease: "power2.out" }, 3.7);
+      // heatmap reveal — clearly, across the final two segments (save -> goal)
+      tl.to("#kf-heat", { opacity: 1, ease: "power2.out", duration: 1.6 }, segs - 1.6);
+      // subtle goal pulse
+      if (ball) tl.to(ball, { attr: { r: 3.2 }, duration: 0.22, yoyo: true, repeat: 1, ease: "power2.out" }, segs - 0.25);
+
+      // continuous idle drift — players keep moving throughout (not scroll-bound)
+      gsap.utils.toArray<SVGGElement>(root.querySelectorAll(".kf-drift")).forEach((el) => {
+        gsap.to(el, {
+          x: "random(-1.8,1.8)", y: "random(-1.8,1.8)",
+          duration: "random(1.6,3.2)", ease: "sine.inOut", repeat: -1, yoyo: true, delay: "random(0,1.2)",
+        });
+      });
 
       return () => {
         gsap.ticker.remove(ticker);
@@ -214,11 +231,15 @@ export default function ScrollMatchSequence() {
                         transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
                         className={[
                           "flex items-center gap-2 rounded-full px-4 py-2 text-[15px] font-semibold shadow-lg backdrop-blur",
-                          pill === "goal" ? "bg-green text-white" : "bg-white/90 text-ink",
+                          pill === "goal" ? "bg-green text-white"
+                            : pill === "save" ? "bg-[#E8C76B] text-ink"
+                            : "bg-white/90 text-ink",
                         ].join(" ")}
                       >
-                        {pill === "goal" ? <Flag className="h-4 w-4" /> : <Circle className="h-3.5 w-3.5" />}
-                        {pill === "goal" ? "Goal" : "Shot"}
+                        {pill === "goal" ? <Flag className="h-4 w-4" />
+                          : pill === "save" ? <Shield className="h-3.5 w-3.5" />
+                          : <Circle className="h-3.5 w-3.5" />}
+                        {pill === "goal" ? "Goal" : pill === "save" ? "Save" : "Shot"}
                       </motion.div>
                     )}
                   </AnimatePresence>
