@@ -65,12 +65,13 @@ export default function TacticalPitch() {
       {/* heatmap overlay — hidden until the final state */}
       <g id="kf-heat" opacity="0" filter="url(#kf-heatblur)" style={{ mixBlendMode: "screen", transition: "opacity 0.55s ease" }}>
         {heatBlobs.map((b, i) => (
-          <circle key={i} cx={b.x} cy={b.y} r={b.r} fill="url(#kf-heatfill)" opacity={b.o} />
+          <circle key={i} className="kf-heatblob" cx={b.x} cy={b.y} r={b.r} fill="url(#kf-heatfill)" opacity={b.o} />
         ))}
       </g>
 
-      {/* pass / shot / save lines — drawn on via strokeDashoffset */}
-      <g fill="none" strokeLinecap="round">
+      {/* pass / shot / save lines — drawn on via strokeDashoffset (butt caps so
+          a hidden line shows no leftover round-cap dot at its origin) */}
+      <g fill="none" strokeLinecap="butt">
         {passLines.map((p) => {
           const d = len(p.from, p.to);
           const stroke = p.kind === "shot" ? "#E8C76B" : p.kind === "save" ? "#B6C1CE" : "#6FA8E8";
@@ -117,8 +118,25 @@ export default function TacticalPitch() {
         })}
       </g>
 
-      {/* ball */}
-      <circle id="kf-ball" cx={38} cy={58} r="2" fill="#fff" filter="url(#kf-ballshadow)" />
+      {/* soccer ball — drawn centered at (0,0); positioned + spun by GSAP */}
+      <g id="kf-ball" transform="translate(38 58)" filter="url(#kf-ballshadow)">
+        <circle r="2.4" fill="#fff" stroke="#0B141C" strokeWidth="0.22" />
+        {/* center pentagon */}
+        <path d="M0,-1 L0.95,-0.31 L0.59,0.81 L-0.59,0.81 L-0.95,-0.31 Z" fill="#0B141C" />
+        {/* seams from pentagon vertices to the rim */}
+        <g stroke="#0B141C" strokeWidth="0.24" strokeLinecap="round">
+          <line x1="0" y1="-1" x2="0" y2="-2.4" />
+          <line x1="0.95" y1="-0.31" x2="2.28" y2="-0.74" />
+          <line x1="0.59" y1="0.81" x2="1.42" y2="1.94" />
+          <line x1="-0.59" y1="0.81" x2="-1.42" y2="1.94" />
+          <line x1="-0.95" y1="-0.31" x2="-2.28" y2="-0.74" />
+        </g>
+        {/* rim patches */}
+        <g fill="#0B141C">
+          <path d="M0,-2.4 a2.4,2.4 0 0 1 0.95,0.17 l-0.95,0.23 z" opacity="0.85" />
+          <path d="M1.42,1.94 a2.4,2.4 0 0 1-1.0,0.4 l0.18,-0.95 z" opacity="0.85" />
+        </g>
+      </g>
     </svg>
   );
 }

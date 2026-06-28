@@ -62,6 +62,10 @@ export const matchSequence: MatchState[] = [
   },
 ];
 
+// Pass-completion % per state (parallel to matchSequence). Climbs as the move
+// strings together — used by the stat strip.
+export const passCompletion = ["83%", "84%", "86%", "87%", "88%", "88%", "89%"];
+
 // ---- numeric counter targets, parsed once for the GSAP proxy tweens ----
 export interface Counters {
   possession: number; passes: number; distance: number;

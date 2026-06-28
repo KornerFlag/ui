@@ -8,36 +8,19 @@ import TacticalPitch from "./TacticalPitch";
 import MatchStatsStrip from "./MatchStatsStrip";
 import MatchEventRail from "./MatchEventRail";
 import {
-  matchSequence, counterTargets, passLines, ballKeyframes, playerRuns, TABS, type Counters, type Tab,
+  matchSequence, passLines, ballKeyframes, playerRuns, TABS, type Tab,
 } from "@/data/matchSequence";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const EASE = "power2.inOut";
-
-function writeCounters(root: HTMLElement, c: Counters) {
-  const set = (stat: string, val: string) => {
-    const el = root.querySelector<HTMLElement>(`[data-stat="${stat}"]`);
-    if (el) el.textContent = val;
-  };
-  set("possession", `${Math.round(c.possession)}%`);
-  set("passes", String(Math.round(c.passes)));
-  set("distance", `${c.distance.toFixed(1)} km`);
-  set("fte", String(Math.round(c.finalThirdEntries)));
-  set("clips", String(Math.round(c.reviewClips)));
-  const bar = root.querySelector<HTMLElement>("#kf-poss-bar");
-  if (bar) bar.style.width = `${c.possession}%`;
-}
-
 // Apply the final, settled state with no animation (reduced-motion fallback).
 function applyFinalStatic(root: HTMLElement) {
-  writeCounters(root, counterTargets[counterTargets.length - 1]);
   root.querySelectorAll<SVGPathElement>(".kf-pass").forEach((p) => { p.style.strokeDashoffset = "0"; });
   const heat = root.querySelector<SVGGElement>("#kf-heat");
   if (heat) heat.style.opacity = "1";
-  const ball = root.querySelector<SVGCircleElement>("#kf-ball");
+  const ball = root.querySelector<SVGGElement>("#kf-ball");
   const goal = ballKeyframes[ballKeyframes.length - 1];
-  if (ball) { ball.setAttribute("cx", String(goal.x)); ball.setAttribute("cy", String(goal.y)); }
+  if (ball) ball.setAttribute("transform", `translate(${goal.x} ${goal.y})`);
   const fill = root.querySelector<HTMLElement>("#kf-tl-fill");
   if (fill) fill.style.width = "100%";
 }
@@ -76,10 +59,8 @@ export default function ScrollMatchSequence() {
       gsap.ticker.add(ticker);
       gsap.ticker.lagSmoothing(0);
 
-      const ball = root.querySelector<SVGCircleElement>("#kf-ball");
-      const c: Counters = { ...counterTargets[0] };
-      const render = () => writeCounters(root, c);
-      render();
+      const ball = root.querySelector<SVGGElement>("#kf-ball");
+      if (ball) gsap.set(ball, { transformOrigin: "center", x: ballKeyframes[0].x, y: ballKeyframes[0].y, rotation: 0 });
 
       const segs = matchSequence.length - 1; // 6
 
@@ -98,23 +79,20 @@ export default function ScrollMatchSequence() {
       tl.fromTo("#kf-tl-fill", { width: "6%" }, { width: "100%", ease: "none", duration: segs }, 0);
 
       // Ball and the line draw share identical start, duration and easing so the
-      // ball rides the tip of the line as it draws.
+      // ball rides the tip of the line as it draws; the ball spins as it rolls.
       for (let i = 0; i < segs; i++) {
         const at = i;
         const STEP = { duration: 1, ease: "power1.inOut" } as const;
+        const from = ballKeyframes[i];
+        const to = ballKeyframes[i + 1];
+        const dist = Math.hypot(to.x - from.x, to.y - from.y);
         if (ball) {
-          tl.to(ball, { attr: { cx: ballKeyframes[i + 1].x, cy: ballKeyframes[i + 1].y }, ...STEP }, at);
+          tl.to(ball, { x: to.x, y: to.y, rotation: `+=${Math.round(dist * 9)}`, ...STEP }, at);
         }
         const pl = passLines.find((p) => p.revealAt === i + 1);
         if (pl) {
           tl.to(`[data-pass="${pl.id}"]`, { strokeDashoffset: 0, ...STEP }, at);
         }
-        const t = counterTargets[i + 1];
-        tl.to(c, {
-          possession: t.possession, passes: t.passes, distance: t.distance,
-          finalThirdEntries: t.finalThirdEntries, reviewClips: t.reviewClips,
-          ...STEP, onUpdate: render,
-        }, at);
         // scripted player runs for this segment
         playerRuns.filter((r) => r.atSegment === i).forEach((r) => {
           tl.to(`.kf-player[data-num="${r.num}"][data-side="${r.side}"]`, { x: `+=${r.dx}`, y: `+=${r.dy}`, ...STEP }, at);
@@ -122,9 +100,9 @@ export default function ScrollMatchSequence() {
       }
 
       // (heatmap visibility is driven by the active tab — see effect below — so it
-      //  reveals at the goal state and can also be toggled by clicking the Heat tab)
-      // subtle goal pulse
-      if (ball) tl.to(ball, { attr: { r: 3.2 }, duration: 0.22, yoyo: true, repeat: 1, ease: "power2.out" }, segs - 0.25);
+      //  builds at the goal state and can also be toggled by clicking the Heat tab)
+      // subtle goal pop on the ball
+      if (ball) tl.to(ball, { scale: 1.35, duration: 0.18, yoyo: true, repeat: 1, ease: "power2.out" }, segs - 0.2);
 
       // continuous idle drift — players keep moving throughout (not scroll-bound)
       gsap.utils.toArray<SVGGElement>(root.querySelectorAll(".kf-drift")).forEach((el) => {
@@ -156,9 +134,24 @@ export default function ScrollMatchSequence() {
   const effectiveTab: Tab = manualTab ?? current.activeTab;
 
   // heatmap shows whenever the Heat tab is active (at the goal state, or on click).
+  // When it appears it builds in — blobs scale up in a quick stagger.
   useEffect(() => {
-    const heat = rootRef.current?.querySelector<SVGGElement>("#kf-heat");
-    if (heat) heat.style.opacity = effectiveTab === "Heat" ? "1" : "0";
+    const root = rootRef.current;
+    if (!root) return;
+    const heat = root.querySelector<SVGGElement>("#kf-heat");
+    if (!heat) return;
+    if (effectiveTab === "Heat") {
+      heat.style.opacity = "1";
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const blobs = root.querySelectorAll(".kf-heatblob");
+      if (reduce) {
+        gsap.set(blobs, { scale: 1, transformOrigin: "center" });
+      } else {
+        gsap.fromTo(blobs, { scale: 0, transformOrigin: "center" }, { scale: 1, stagger: 0.05, duration: 0.5, ease: "power2.out" });
+      }
+    } else {
+      heat.style.opacity = "0";
+    }
   }, [effectiveTab]);
 
   return (
@@ -281,7 +274,7 @@ export default function ScrollMatchSequence() {
               <span className="font-display tabular-nums text-[11px] text-on-ink-soft">92:14</span>
             </div>
 
-            <MatchStatsStrip />
+            <MatchStatsStrip stateIndex={stateIndex} />
           </div>
         </div>
       </section>
