@@ -8,7 +8,7 @@ import TacticalPitch from "./TacticalPitch";
 import MatchStatsStrip from "./MatchStatsStrip";
 import MatchEventRail from "./MatchEventRail";
 import {
-  matchSequence, counterTargets, passLines, ballKeyframes, playerRuns, TABS, type Counters,
+  matchSequence, counterTargets, passLines, ballKeyframes, playerRuns, TABS, type Counters, type Tab,
 } from "@/data/matchSequence";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -48,6 +48,7 @@ export default function ScrollMatchSequence() {
   const sceneRef = useRef<{ idx: number; pill: string | null }>({ idx: -1, pill: null });
   const [stateIndex, setStateIndex] = useState(0);
   const [pill, setPill] = useState<string | null>(null);
+  const [manualTab, setManualTab] = useState<Tab | null>(null);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -58,6 +59,7 @@ export default function ScrollMatchSequence() {
       const idx = Math.min(matchSequence.length - 1, Math.floor(progress * matchSequence.length));
       const nextPill = idx === 4 ? "shot" : idx === 5 ? "save" : idx === 6 ? "goal" : null;
       if (idx !== sceneRef.current.idx || nextPill !== sceneRef.current.pill) {
+        if (idx !== sceneRef.current.idx) setManualTab(null); // scrolling resumes auto tab control
         sceneRef.current = { idx, pill: nextPill };
         setStateIndex(idx);
         setPill(nextPill);
@@ -119,8 +121,8 @@ export default function ScrollMatchSequence() {
         });
       }
 
-      // heatmap reveal — clearly, across the final two segments (save -> goal)
-      tl.to("#kf-heat", { opacity: 1, ease: "power2.out", duration: 1.6 }, segs - 1.6);
+      // (heatmap visibility is driven by the active tab — see effect below — so it
+      //  reveals at the goal state and can also be toggled by clicking the Heat tab)
       // subtle goal pulse
       if (ball) tl.to(ball, { attr: { r: 3.2 }, duration: 0.22, yoyo: true, repeat: 1, ease: "power2.out" }, segs - 0.25);
 
@@ -150,6 +152,14 @@ export default function ScrollMatchSequence() {
   }, []);
 
   const current = matchSequence[stateIndex];
+  // active tab follows the scroll state, unless the user clicks one to peek.
+  const effectiveTab: Tab = manualTab ?? current.activeTab;
+
+  // heatmap shows whenever the Heat tab is active (at the goal state, or on click).
+  useEffect(() => {
+    const heat = rootRef.current?.querySelector<SVGGElement>("#kf-heat");
+    if (heat) heat.style.opacity = effectiveTab === "Heat" ? "1" : "0";
+  }, [effectiveTab]);
 
   return (
     <div className="bg-ink text-on-ink">
@@ -183,9 +193,13 @@ export default function ScrollMatchSequence() {
               </div>
               <div className="ml-auto flex gap-1 rounded-lg bg-white/[0.05] p-1">
                 {TABS.map((t) => {
-                  const active = current.activeTab === t;
+                  const active = effectiveTab === t;
                   return (
-                    <button key={t} className="relative rounded-md px-3 py-1.5 text-[12px] font-semibold text-on-ink-soft">
+                    <button
+                      key={t}
+                      onClick={() => setManualTab(t)}
+                      className="relative cursor-pointer rounded-md px-3 py-1.5 text-[12px] font-semibold text-on-ink-soft transition-colors hover:text-white"
+                    >
                       {active && (
                         <motion.span
                           layoutId="kf-tab"

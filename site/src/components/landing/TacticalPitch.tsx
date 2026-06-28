@@ -63,7 +63,7 @@ export default function TacticalPitch() {
       </g>
 
       {/* heatmap overlay — hidden until the final state */}
-      <g id="kf-heat" opacity="0" filter="url(#kf-heatblur)" style={{ mixBlendMode: "screen" }}>
+      <g id="kf-heat" opacity="0" filter="url(#kf-heatblur)" style={{ mixBlendMode: "screen", transition: "opacity 0.55s ease" }}>
         {heatBlobs.map((b, i) => (
           <circle key={i} cx={b.x} cy={b.y} r={b.r} fill="url(#kf-heatfill)" opacity={b.o} />
         ))}
