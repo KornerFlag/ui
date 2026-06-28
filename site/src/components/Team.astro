@@ -1,0 +1,22 @@
+---
+import { TEAM } from "../lib/team.ts";
+---
+<section class="section team" id="team">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Who's building it</span>
+      <h2>A small team shipping fast.</h2>
+      <p>Three builders covering computer vision, product and infrastructure — turning research into a tool coaches actually use.</p>
+    </div>
+    <div class="team-grid">
+      {TEAM.map((m, i) => (
+        <div class="team-card reveal" data-d={String(i + 1)}>
+          <span class="team-avatar">{m.initials}</span>
+          <div class="team-name">{m.name}</div>
+          <div class="team-role">{m.role}</div>
+          <p class="team-focus">{m.focus}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
