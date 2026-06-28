@@ -84,7 +84,7 @@ const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.14, rootMargin: "0px 0px -8% 0px" });
     document.querySelectorAll(".reveal:not(.in)").forEach((el) => io.observe(el));
     // active in-page nav link (scroll-spy)
-    const spyIds = ["how", "features", "pricing", "team"];
+    const spyIds = ["how", "features", "pricing"];
     const spyLinks = new Map();
     document.querySelectorAll(".nav-links a").forEach((a) => {
       const h = a.getAttribute("href") || "";
@@ -92,14 +92,15 @@ const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
       if (spyIds.includes(id)) spyLinks.set(id, a);
     });
     if (spyLinks.size) {
+      const visible = new Set();
       const spy = new IntersectionObserver((entries) => {
         entries.forEach((e) => {
-          if (e.isIntersecting) {
-            spyLinks.forEach((el) => el.classList.remove("active"));
-            const el = spyLinks.get(e.target.id);
-            if (el) el.classList.add("active");
-          }
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
         });
+        spyLinks.forEach((el) => el.classList.remove("active"));
+        const active = spyIds.find((id) => visible.has(id));
+        if (active) { const el = spyLinks.get(active); if (el) el.classList.add("active"); }
       }, { rootMargin: "-45% 0px -50% 0px" });
       spyIds.forEach((id) => { const s = document.getElementById(id); if (s) spy.observe(s); });
     }
