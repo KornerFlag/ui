@@ -1,0 +1,28 @@
+---
+import { PLANS } from "../lib/plans.ts";
+const base = import.meta.env.BASE_URL;
+const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
+---
+<section class="section pricing" id="pricing" style="padding-top:0">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Pricing</span>
+      <h2>Start free. Scale when it's working.</h2>
+      <p>Your first match analysis is on us. Pay only once you've seen your own footage turned into a coach-ready room.</p>
+    </div>
+    <div class="price-free reveal" data-d="1">
+      <span class="hero-pill"><span class="tag">Free</span> One-match analysis, on us — no card required</span>
+    </div>
+    <div class="price-grid">
+      {PLANS.map((p, i) => (
+        <div class={`price-card reveal${p.popular ? " is-popular" : ""}`} data-d={String(i + 1)}>
+          {p.popular && <span class="price-flag">Most popular</span>}
+          <div class="price-name">{p.name}</div>
+          <div class="price-amt"><span class="price-n">{p.price}</span><span class="price-cad">{p.cadence}</span></div>
+          <p class="price-note">{p.note}</p>
+          <a class={`btn ${p.popular ? "btn-accent" : "btn-ghost"}`} href={`${base}${p.href}`} set:html={`${p.price === "Talk to us" ? "Talk to us" : "Choose plan"} ${arrow}`}></a>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
