@@ -2,29 +2,9 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import manifestData from "../../public/data/manifest.json";
 import { clipTitle, formatDuration } from "../lib/site";
+import { PLANS as plans } from "../lib/plans.ts";
 
 const featuredClip = (manifestData.clips || [])[0];
-
-const plans = [
-  {
-    name: "Single match review",
-    price: "$49",
-    cadence: "per match",
-    note: "For staff who need one presentation-ready analysis room.",
-  },
-  {
-    name: "Team package",
-    price: "$149",
-    cadence: "per batch",
-    note: "For clubs or staff groups working through several matches at once.",
-  },
-  {
-    name: "Custom workflow",
-    price: "Talk to us",
-    cadence: "enterprise",
-    note: "For recurring ingest, custom reporting, or recruiting-heavy review needs.",
-  },
-];
 ---
 
 <BaseLayout
