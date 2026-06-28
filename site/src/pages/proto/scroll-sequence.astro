@@ -1,0 +1,24 @@
+---
+import "../../styles/proto.css";
+import ScrollMatchSequence from "../../components/landing/ScrollMatchSequence.tsx";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KornerFlag — Scroll Match Sequence (prototype)</title>
+    <meta
+      name="description"
+      content="Prototype: GSAP scroll-driven possession sequence for the KornerFlag landing page."
+    />
+    <style is:global>
+      html { -webkit-font-smoothing: antialiased; }
+      body { margin: 0; background: #0b141c; font-family: 'Inter', system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <ScrollMatchSequence client:load />
+  </body>
+</html>

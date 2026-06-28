@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* KornerFlag match-room tokens, mapped into the Tailwind v4 theme so utilities
+   like bg-ink-2 / text-on-ink-soft / font-display resolve. Deep navy-graphite
+   shell, controlled blue accent, restrained pitch green. */
+@theme {
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #0B141C;
+  --color-ink-2: #0F1C28;
+  --color-ink-3: #15202C;
+
+  --color-accent: #2C6AD4;
+  --color-green: #2FA56E;
+
+  --color-on-ink: #EDF1F5;
+  --color-on-ink-soft: #9AA9B8;
+  --color-on-ink-mute: #63727F;
+}
