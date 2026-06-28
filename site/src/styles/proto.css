@@ -19,3 +19,10 @@
   --color-on-ink-soft: #9AA9B8;
   --color-on-ink-mute: #63727F;
 }
+
+/* When this island is dropped into the landing page (which has global
+   `h1..h4 { color: var(--text) }` from kf/styles.css), that unlayered rule
+   would override Tailwind's text utilities on the island's headings and render
+   them dark-on-dark. Re-assert inheritance inside the island so its Tailwind
+   colors win. Specificity (.kf-seq :is(h2)) beats the bare `h2`. */
+.kf-seq :is(h1, h2, h3, h4) { color: inherit; }

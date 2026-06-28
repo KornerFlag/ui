@@ -155,7 +155,7 @@ export default function ScrollMatchSequence() {
   }, [effectiveTab]);
 
   return (
-    <div className="bg-ink text-on-ink">
+    <div className="kf-seq bg-ink text-on-ink">
       {/* copy above */}
       <div className="mx-auto max-w-3xl px-6 pb-10 pt-24 text-center">
         <span className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-accent">
