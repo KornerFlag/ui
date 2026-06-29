@@ -1,0 +1,62 @@
+---
+import KfLayout from "../../layouts/KfLayout.astro";
+import BgVideo from "../../components/BgVideo.astro";
+const base = import.meta.env.BASE_URL;
+---
+
+<KfLayout title="Background video — scaffold">
+  <!-- HERO with Higgsfield background video.
+       Drop site/public/video/hero-bg.mp4 (+ optional .webm / poster) and it appears. -->
+  <BgVideo
+    src="video/hero-bg.mp4"
+    srcWebm="video/hero-bg.webm"
+    poster="video/hero-bg-poster.jpg"
+    overlay={0.6}
+    minHeight="94vh"
+    objectPosition="center"
+  >
+    <div class="container bgv-hero">
+      <span class="hero-pill"><span class="tag">Higgsfield</span> Background video scaffold</span>
+      <h1>Coach-ready match analysis from <span class="accent">existing footage.</span></h1>
+      <p class="bgv-sub">
+        This hero is wired for a Higgsfield-generated background clip. Until one is added it
+        falls back to a brand gradient — so the layout always reads.
+      </p>
+      <div class="bgv-ctas">
+        <a class="btn btn-accent btn-lg" href={`${base}login/`}>Analyze a match
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a class="btn btn-onink btn-lg" href={`${base}room/`}>See the match room</a>
+      </div>
+      <p class="bgv-hint">Drop <code>hero-bg.mp4</code> in <code>site/public/video/</code> — it auto-loads here.</p>
+    </div>
+  </BgVideo>
+
+  <!-- self-documenting scaffold notes -->
+  <section class="section">
+    <div class="container" style="max-width:760px">
+      <span class="eyebrow">Scaffold</span>
+      <h2 style="margin-top:14px">How this background video is wired</h2>
+      <ul class="bgv-notes">
+        <li><b>Component:</b> <code>site/src/components/BgVideo.astro</code> — muted, autoplay, looping, <code>playsinline</code>, with a darkening overlay + brand tint and a <code>prefers-reduced-motion</code> fallback (poster only, no motion).</li>
+        <li><b>Assets:</b> drop the Higgsfield export in <code>site/public/video/</code> as <code>hero-bg.mp4</code> (optionally <code>hero-bg.webm</code> and <code>hero-bg-poster.jpg</code>). See that folder's <code>README.md</code> for export settings.</li>
+        <li><b>Usage:</b> wrap any hero/section content in <code>&lt;BgVideo src="video/hero-bg.mp4" poster="…" overlay=&#123;0.62&#125;&gt;…&lt;/BgVideo&gt;</code>.</li>
+        <li><b>Fallback:</b> with no file present, a navy→steel gradient backdrop shows, so nothing looks broken before the clip exists.</li>
+      </ul>
+    </div>
+  </section>
+</KfLayout>
+
+<style is:global>
+  /* light foreground treatment over the dark video */
+  .bgv-hero { text-align: center; padding: 96px 0 64px; }
+  .bgv-hero h1 { color: #fff; font-size: clamp(36px, 5.4vw, 64px); line-height: 1.05; margin-top: 22px; }
+  .bgv-hero .accent { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .bgv-hero .hero-pill { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.18); color: #eaf1f9; backdrop-filter: blur(6px); }
+  .bgv-sub { max-width: 56ch; margin: 20px auto 0; color: rgba(237, 241, 245, 0.82); font-size: clamp(16px, 1.7vw, 19px); line-height: 1.6; }
+  .bgv-ctas { display: flex; gap: 13px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
+  .bgv-hint { margin-top: 22px; font-size: 13px; color: rgba(237, 241, 245, 0.6); }
+  .bgv-hint code { background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 6px; }
+  .bgv-notes { margin-top: 18px; padding-left: 18px; display: flex; flex-direction: column; gap: 12px; color: var(--text-2); line-height: 1.6; }
+  .bgv-notes code { background: var(--surface-2, #f0f4f8); padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+</style>

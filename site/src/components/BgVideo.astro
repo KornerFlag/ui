@@ -1,0 +1,123 @@
+---
+import { withBase } from "../lib/site";
+
+/**
+ * Full-bleed background video — built to drop a Higgsfield-generated clip behind
+ * any hero/section. Foreground content goes in the default slot.
+ *
+ * Props
+ *  - src        mp4 path (base-relative, e.g. "video/hero-bg.mp4") or full URL
+ *  - srcWebm    optional webm source (served first for smaller payloads)
+ *  - poster     still frame shown before the video loads / when motion is reduced
+ *  - overlay    0..1 darkness of the readability tint over the video (default 0.62)
+ *  - tint       add a subtle brand (navy→steel) gradient over the video (default true)
+ *  - minHeight  CSS height of the band (default "92vh")
+ *  - objectPosition  focal point of the video, e.g. "center" / "50% 30%"
+ *
+ * If `src` is omitted or the file is missing, a brand gradient backdrop shows,
+ * so the layout looks intentional until the real clip is dropped in.
+ */
+const {
+  src = "",
+  srcWebm = "",
+  poster = "",
+  overlay = 0.62,
+  tint = true,
+  minHeight = "92vh",
+  objectPosition = "center",
+} = Astro.props;
+
+const mp4 = withBase(src);
+const webm = withBase(srcWebm);
+const posterUrl = withBase(poster);
+---
+
+<section
+  class="bgv"
+  style={`--bgv-min:${minHeight}; --bgv-overlay:${overlay}; --bgv-pos:${objectPosition};${posterUrl ? ` --bgv-poster:url('${posterUrl}');` : ""}`}
+  data-tint={tint ? "1" : "0"}
+>
+  {mp4 && (
+    <video
+      class="bgv-media"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="auto"
+      poster={posterUrl || undefined}
+      aria-hidden="true"
+    >
+      {webm && <source src={webm} type="video/webm" />}
+      <source src={mp4} type="video/mp4" />
+    </video>
+  )}
+
+  <div class="bgv-overlay"></div>
+  {tint && <div class="bgv-tint"></div>}
+
+  <div class="bgv-content">
+    <slot />
+  </div>
+</section>
+
+<style>
+  .bgv {
+    position: relative;
+    min-height: var(--bgv-min);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    isolation: isolate;
+    /* always-present backdrop so a missing/loading clip still looks deliberate */
+    background:
+      radial-gradient(120% 90% at 50% 0%, rgba(44, 106, 212, 0.18), transparent 60%),
+      var(--bgv-poster, none) center / cover no-repeat,
+      linear-gradient(168deg, #13202c 0%, #0b141c 100%);
+    background-color: #0b141c;
+  }
+
+  .bgv-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--bgv-pos);
+    z-index: -1;
+  }
+
+  /* readability darkening — stronger toward the bottom where text usually sits */
+  .bgv-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(11, 20, 28, calc(var(--bgv-overlay) * 0.5)) 0%,
+      rgba(11, 20, 28, calc(var(--bgv-overlay) * 0.7)) 55%,
+      rgba(11, 20, 28, var(--bgv-overlay)) 100%
+    );
+  }
+
+  /* subtle brand wash */
+  .bgv-tint {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(132deg, rgba(70, 160, 105, 0.14), rgba(50, 88, 198, 0.14));
+    mix-blend-mode: soft-light;
+    pointer-events: none;
+  }
+
+  .bgv-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+  }
+
+  /* respect reduced-motion: hide the moving video, keep the poster/backdrop */
+  @media (prefers-reduced-motion: reduce) {
+    .bgv-media { display: none; }
+  }
+</style>
