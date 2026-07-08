@@ -1,124 +1,268 @@
 ---
+/**
+ * Match room — the film-room view of one analyzed match. Everything numeric
+ * on this page is computed at build time from the real pipeline output in
+ * /public/data (annotated_stats.json per clip) — no invented stats.
+ */
 import KfLayout from "../layouts/KfLayout.astro";
-const base = import.meta.env.BASE_URL;
+import Heatmap from "../components/landing/Heatmap.astro";
+import manifest from "../../public/data/manifest.json";
+import statsFeat from "../../public/data/08fd33_4_annotated_stats.json";
+import statsAlt from "../../public/data/nc_state_stats_annotated_stats.json";
 
-const clips = [
-  { t: "12:04", title: "Final-third entry", tag: "Build-up" },
-  { t: "34:51", title: "High press regain", tag: "Out of poss." },
-  { t: "61:18", title: "Goal — #11", tag: "Transition" },
-  { t: "77:40", title: "Switch of play", tag: "Progression" },
+const base = import.meta.env.BASE_URL;
+const src = (p: string) => base + String(p).replace(/^\//, "");
+
+const clips = manifest.clips;
+const feat = clips.find((c) => c.clip_id === "08fd33_4") ?? clips[0];
+const alt = clips.find((c) => c.clip_id === "nc_state_stats") ?? clips[1];
+
+/* aggregates from the featured clip's pipeline output. Speeds above 45 km/h
+   are tracking artifacts (see the pitch_xy gotcha) — excluded from display. */
+const players = Object.entries(statsFeat.players).map(([id, p]: [string, any]) => ({ id, ...p }));
+const sane = players.filter((p) => p.max_speed_kmh < 45);
+const topSpeed = Math.max(...sane.map((p) => p.max_speed_kmh));
+const totalDist = players.reduce((a, p) => a + p.distance_m, 0);
+const leaders = [...players].sort((a, b) => b.distance_m - a.distance_m).slice(0, 4);
+const maxLead = leaders[0].distance_m;
+const poss1 = Math.round(statsFeat.possession.team_1_percent);
+const poss2 = 100 - poss1;
+const dur = statsFeat.video.duration_seconds;
+const fmtClock = (s: number) => `0:${String(Math.round(s)).padStart(2, "0")}`;
+
+/* review moments — seekable markers on the featured clip */
+const moments = [
+  { t: 3, label: "Build-up" },
+  { t: 12, label: "Final-third entry" },
+  { t: 22, label: "Transition" },
 ];
-const leaders = [
-  { id: "#12", v: 78, w: 100 }, { id: "#7", v: 64, w: 82 }, { id: "#3", v: 59, w: 74 }, { id: "#9", v: 51, w: 64 },
+
+const altPoss = Math.round(statsAlt.possession.team_1_percent);
+const clipCards = [
+  { clip: feat, tag: `${Math.round(statsFeat.possession.team_2_percent)}% away control`, stats: statsFeat },
+  { clip: alt, tag: `${altPoss}% home control`, stats: statsAlt },
 ];
 ---
 <KfLayout title="Match room — Korner Flag" active="Match room">
   <section class="page-shell room-page">
     <div class="container">
-      <div class="page-head reveal in">
+      <div class="room-head reveal in">
         <div>
           <span class="eyebrow">Match room</span>
-          <h1>NC State <span class="vs2">vs</span> Washington</h1>
-          <p class="muted">Apr 6, 2026 · Full match · Generated from sideline footage</p>
+          <h1>NC State <span class="vs">vs</span> Washington</h1>
+          <p class="muted">Apr 6, 2026 · Generated from sideline footage · {players.length} players tracked</p>
         </div>
         <div class="room-actions">
-          <a class="btn btn-ghost" href={`${base}matches/`}>← All matches</a>
-          <a class="btn btn-primary" href="#">Share report</a>
+          <a class="btn btn-ghost" href={`${base}matches/`}>All matches</a>
+          <button class="btn btn-primary" id="shareBtn">Share report</button>
         </div>
       </div>
 
-      <div class="room reveal" data-d="1" style="margin-top:28px">
-        <div class="room-top">
-          <div class="board-dots"><i></i><i></i><i></i></div>
-          <div class="board-title">NC State vs Washington · <b>Final Review</b></div>
-          <span class="room-chip" style="margin-left:auto">1–0 · 92:14</span>
+      <!-- ---- analysis board ---- -->
+      <div class="board reveal in" data-d="1">
+        <div class="board-top">
+          <span class="board-dots"><i></i><i></i><i></i></span>
+          <span class="board-title">Tracked clip review · <b>{feat.title}</b></span>
+          <span class="board-chips">
+            <span class="chip live"><i></i>Tracked</span>
+            <span class="chip">{statsFeat.video.resolution} · {statsFeat.video.fps} fps</span>
+          </span>
         </div>
-        <div class="room-grid">
-          <div class="room-main">
-            <div class="room-video" id="room-pitch">
-              <div class="room-play"><button aria-label="Play"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21 6 3"/></svg></button></div>
-              <div class="room-chips"><span class="room-chip">Tracking</span><span class="room-chip">Passing</span><span class="room-chip">Heat zones</span></div>
-            </div>
-            <div class="room-tl"><span class="t">35:02</span><div class="track"><i></i><span class="m" style="left:24%"></span><span class="m" style="left:52%"></span><span class="m" style="left:78%"></span></div><span class="t">92:14</span></div>
 
-            <div class="room-metrics">
-              <div class="rm"><span class="l">Passes</span><span class="v">413</span></div>
-              <div class="rm"><span class="l">Completion</span><span class="v">83%</span></div>
-              <div class="rm"><span class="l">Distance</span><span class="v">67.4 km</span></div>
-              <div class="rm"><span class="l">Final-third entries</span><span class="v">9</span></div>
+        <div class="board-grid">
+          <div class="board-main">
+            <div class="board-video">
+              <video id="roomVideo" src={src(feat.local_video_url)} poster={src(feat.thumbnail_url)}
+                controls preload="metadata" playsinline></video>
+            </div>
+
+            <div class="board-tl">
+              <span class="t">0:00</span>
+              <div class="track">
+                {moments.map((m) => (
+                  <button class="mark" style={`left:${(m.t / dur) * 100}%`} data-t={m.t} title={`${m.label} · ${fmtClock(m.t)}`}>
+                    <span>{m.label}</span>
+                  </button>
+                ))}
+              </div>
+              <span class="t">{fmtClock(dur)}</span>
+            </div>
+
+            <div class="board-metrics">
+              <div class="bm"><span class="l">Ball control</span><span class="v">{poss2}<em>%</em></span><span class="s">away side, this clip</span></div>
+              <div class="bm"><span class="l">Distance covered</span><span class="v">{(totalDist / 1000).toFixed(1)}<em>km</em></span><span class="s">all tracked players</span></div>
+              <div class="bm"><span class="l">Top sprint</span><span class="v">{topSpeed.toFixed(1)}<em>km/h</em></span><span class="s">player #{sane.reduce((a, p) => (p.max_speed_kmh > a.max_speed_kmh ? p : a)).id}</span></div>
+              <div class="bm"><span class="l">Players tracked</span><span class="v">{players.length}</span><span class="s">incl. refs & keepers</span></div>
             </div>
           </div>
 
-          <div class="room-side">
-            <div>
-              <div class="panel-h">Possession</div>
-              <div class="poss-row"><span class="v">54%<span style="font-size:11px;color:var(--on-ink-mute);font-family:var(--font-body);font-weight:500;margin-left:6px">NC STATE</span></span><span class="v dim">46%</span></div>
-              <div class="poss-bar"><i style="width:54%"></i><i style="width:46%"></i></div>
+          <aside class="board-side">
+            <div class="panel">
+              <h3 class="panel-h">Ball control</h3>
+              <div class="poss-nums"><b>{poss1}%</b><span>home</span><span class="spacer"></span><span>away</span><b>{poss2}%</b></div>
+              <div class="poss-bar"><i style={`width:${poss1}%`}></i></div>
             </div>
-            <div>
-              <div class="panel-h">Passing leaders</div>
+
+            <div class="panel">
+              <h3 class="panel-h">Distance leaders</h3>
               {leaders.map((l) => (
-                <div class="lead-row"><span class="id">{l.id}</span><span class="bar"><i style={`width:${l.w}%`}></i></span><span class="n">{l.v}</span></div>
+                <div class="lead-row">
+                  <span class="id">#{l.id}</span>
+                  <span class="bar"><i style={`width:${(l.distance_m / maxLead) * 100}%`}></i></span>
+                  <span class="n">{l.distance_m.toFixed(0)} m</span>
+                </div>
               ))}
             </div>
-            <div>
-              <div class="panel-h">Team heatmap</div>
-              <div class="room-heat" id="room-heat"></div>
+
+            <div class="panel">
+              <h3 class="panel-h">Team heatmap</h3>
+              <Heatmap team="team2" label="Away shape" />
             </div>
-          </div>
+          </aside>
         </div>
       </div>
 
-      <div class="clips-block reveal" data-d="2">
-        <div class="block-head"><h2>Flagged clips</h2><span class="muted" style="font-size:14px">{clips.length} review moments</span></div>
+      <!-- ---- clips ---- -->
+      <div class="clips reveal in" data-d="2">
+        <div class="clips-head">
+          <h2>Analyzed clips</h2>
+          <span class="muted">{clipCards.length} clips · full-match analysis on request</span>
+        </div>
         <div class="clips-grid">
-          {clips.map((c) => (
-            <a class="lcard clip-card" href="#">
-              <div class="clip-thumb"><span class="clip-pitch"></span><span class="clip-play"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21 6 3"/></svg></span><span class="clip-t">{c.t}</span></div>
-              <div class="clip-body"><b>{c.title}</b><span class="clip-tag">{c.tag}</span></div>
+          {clipCards.map(({ clip, tag }) => (
+            <a class="clip-card" href={`${base}clips/${clip.clip_id}/`}>
+              <span class="clip-thumb">
+                <img src={src(clip.thumbnail_url)} alt={clip.title} loading="lazy" />
+                <span class="clip-play"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg></span>
+                <span class="clip-t">{fmtClock(clip.duration_seconds)}</span>
+              </span>
+              <span class="clip-body"><b>{clip.title}</b><span>{tag}</span></span>
             </a>
           ))}
+          <div class="clip-card soon">
+            <span class="clip-thumb"><span class="soon-mark">+</span></span>
+            <span class="clip-body"><b>Your match here</b><span><a href={`${base}contact/`}>Send one match — free</a></span></span>
+          </div>
         </div>
       </div>
     </div>
   </section>
 </KfLayout>
 
-<style is:global>
-  .room-page .page-head h1 { font-size: clamp(28px, 4vw, 42px); }
-  .vs2 { color: var(--text-3); font-weight: 500; }
-  .room-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-  .room-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-top: 18px; background: var(--ink-line-2); border-radius: 12px; overflow: hidden; }
-  .rm { background: var(--ink-2); padding: 14px 16px; display: flex; flex-direction: column; gap: 5px; }
-  .rm .l { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-ink-mute); }
-  .rm .v { font-family: var(--font-display); font-size: 18px; font-weight: 500; color: #fff; }
-  .room-heat { height: 120px; margin-top: 10px; border-radius: 10px; position: relative; overflow: hidden; background: #0E2018; border: 1px solid var(--ink-line-2); }
-  .clips-block { margin-top: 44px; }
-  .clips-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
-  .clip-card { overflow: hidden; transition: transform .22s var(--ease), box-shadow .22s var(--ease); }
-  .clip-card:hover { transform: translateY(-3px); box-shadow: var(--sh); }
-  .clip-thumb { position: relative; aspect-ratio: 16/10; background: linear-gradient(160deg,#13402b,#0c2a1d); }
-  .clip-pitch { position: absolute; inset: 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 5px; }
-  .clip-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); display: grid; place-items: center; }
-  .clip-t { position: absolute; bottom: 10px; right: 10px; font-family: var(--font-display); font-size: 11px; color: #fff; background: rgba(14,24,34,.55); padding: 3px 7px; border-radius: 6px; }
-  .clip-body { padding: 13px 14px 15px; }
-  .clip-body b { font-family: var(--font-display); font-weight: 600; font-size: 14.5px; display: block; }
-  .clip-tag { font-size: 11.5px; font-weight: 600; color: var(--text-3); }
-  @media (max-width: 900px) { .clips-grid { grid-template-columns: repeat(2, 1fr); } .room-metrics { grid-template-columns: repeat(2, 1fr); } }
-</style>
-
 <script is:inline>
   (function () {
-    function paintHeat(el, blobs) { if (!el) return; blobs.forEach(([x,y,r,c,o]) => { const d = document.createElement("div"); d.style.cssText = `position:absolute;left:${x}%;top:${y}%;width:${r}px;height:${r}px;transform:translate(-50%,-50%);border-radius:50%;filter:blur(13px);background:radial-gradient(circle,${c} 0%,transparent 70%);opacity:${o}`; el.appendChild(d); }); }
-    paintHeat(document.getElementById("room-heat"), [[26,40,58,"#B24A36",.75],[42,62,68,"#D98A3D",.6],[62,46,52,"#4F86C6",.5],[22,74,46,"#E8C76B",.5],[74,54,46,"#46A069",.45]]);
-    const ns = "http://www.w3.org/2000/svg";
-    const el = document.getElementById("room-pitch");
-    if (el) { const s = document.createElementNS(ns, "svg"); s.setAttribute("viewBox","0 0 200 112"); s.setAttribute("preserveAspectRatio","xMidYMid slice"); s.style.cssText="position:absolute;inset:0;width:100%;height:100%";
-      const ln=a=>{const e=document.createElementNS(ns,"rect");e.setAttribute("fill","none");e.setAttribute("stroke","rgba(255,255,255,.13)");e.setAttribute("stroke-width","1");for(const k in a)e.setAttribute(k,a[k]);return e;};
-      s.appendChild(ln({x:12,y:9,width:176,height:94,rx:3}));
-      const mid=document.createElementNS(ns,"line");mid.setAttribute("x1",100);mid.setAttribute("y1",9);mid.setAttribute("x2",100);mid.setAttribute("y2",103);mid.setAttribute("stroke","rgba(255,255,255,.13)");mid.setAttribute("stroke-width","1");s.appendChild(mid);
-      const c=document.createElementNS(ns,"circle");c.setAttribute("cx",100);c.setAttribute("cy",56);c.setAttribute("r",17);c.setAttribute("fill","none");c.setAttribute("stroke","rgba(255,255,255,.13)");c.setAttribute("stroke-width","1");s.appendChild(c);
-      el.prepend(s);
+    // seekable review moments
+    const video = document.getElementById("roomVideo");
+    document.querySelectorAll(".mark").forEach((m) => {
+      m.addEventListener("click", () => {
+        if (!video) return;
+        video.currentTime = Number(m.dataset.t) || 0;
+        video.play();
+      });
+    });
+    // share = copy link
+    const share = document.getElementById("shareBtn");
+    if (share) {
+      share.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(location.href);
+          const prev = share.textContent;
+          share.textContent = "Link copied";
+          setTimeout(() => (share.textContent = prev), 1800);
+        } catch {}
+      });
     }
   })();
 </script>
+
+<style>
+  .room-page h1 { font-size: clamp(30px, 4vw, 46px); margin-top: var(--s3); }
+  .vs { color: var(--muted-2); font-weight: 500; }
+  .room-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s5); flex-wrap: wrap; }
+  .room-head .muted { margin-top: var(--s3); font-size: 14.5px; }
+  .room-actions { display: flex; gap: var(--s3); flex-wrap: wrap; }
+
+  /* ---- dark film-room board ---- */
+  .board { margin-top: var(--s6); background: #161d12; border: 1px solid rgba(255,255,255,.08);
+    border-radius: var(--r-lg); box-shadow: var(--sh-lg); overflow: hidden; color: #eef1ec; }
+  .board-top { display: flex; align-items: center; gap: var(--s4); padding: 13px var(--s5);
+    border-bottom: 1px solid rgba(255,255,255,.08); }
+  .board-dots { display: inline-flex; gap: 6px; }
+  .board-dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.16); }
+  .board-title { font-size: 13.5px; color: rgba(255,255,255,.66); }
+  .board-title b { color: #fff; font-weight: 600; }
+  .board-chips { margin-left: auto; display: inline-flex; gap: var(--s2); }
+  .chip { font-size: 11px; font-weight: 600; letter-spacing: .04em; color: rgba(255,255,255,.75);
+    border: 1px solid rgba(255,255,255,.16); padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .chip.live { color: #7cf2b0; border-color: rgba(124,242,176,.35); display: inline-flex; align-items: center; gap: 6px; }
+  .chip.live i { width: 6px; height: 6px; border-radius: 50%; background: #7cf2b0; box-shadow: 0 0 7px #7cf2b0; }
+
+  .board-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--s5); padding: var(--s5); }
+
+  .board-video { border-radius: var(--r-sm); overflow: hidden; background: #000; }
+  .board-video video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+
+  /* timeline with seekable moment markers */
+  .board-tl { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s4); }
+  .board-tl .t { font-size: 11.5px; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.55); }
+  .board-tl .track { position: relative; flex: 1; height: 4px; border-radius: 999px; background: rgba(255,255,255,.14); }
+  .mark { position: absolute; top: 50%; translate: -50% -50%; width: 14px; height: 14px; border-radius: 50%;
+    background: #7cf2b0; border: 3px solid #161d12; cursor: pointer; padding: 0;
+    transition: scale .2s var(--ease); }
+  .mark:hover { scale: 1.35; }
+  .mark span { position: absolute; bottom: 16px; left: 50%; translate: -50%; white-space: nowrap;
+    font-size: 10.5px; font-weight: 600; color: #0e160a; background: #7cf2b0; padding: 2px 8px; border-radius: 999px;
+    opacity: 0; transition: opacity .2s var(--ease); pointer-events: none; }
+  .mark:hover span, .mark:focus-visible span { opacity: 1; }
+
+  .board-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-top: var(--s4);
+    background: rgba(255,255,255,.07); border-radius: var(--r-sm); overflow: hidden; }
+  .bm { background: #1b2415; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .bm .l { font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: rgba(255,255,255,.5); }
+  .bm .v { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
+  .bm .v em { font-style: normal; font-size: .55em; margin-left: 2px; color: rgba(255,255,255,.6); }
+  .bm .s { font-size: 11px; color: rgba(255,255,255,.45); }
+
+  .board-side { display: flex; flex-direction: column; gap: var(--s5); }
+  .panel-h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.55); margin: 0 0 var(--s3); }
+  .poss-nums { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: rgba(255,255,255,.55); }
+  .poss-nums b { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
+  .poss-nums .spacer { flex: 1; }
+  .poss-bar { margin-top: var(--s3); height: 6px; border-radius: 999px; background: rgba(255,255,255,.16); overflow: hidden; }
+  .poss-bar i { display: block; height: 100%; background: #7cf2b0; border-radius: 999px; }
+
+  .lead-row { display: flex; align-items: center; gap: var(--s3); padding: 5px 0; }
+  .lead-row .id { width: 34px; font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,.8); font-variant-numeric: tabular-nums; }
+  .lead-row .bar { flex: 1; height: 5px; border-radius: 999px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .lead-row .bar i { display: block; height: 100%; background: linear-gradient(90deg, #3f6b34, #7cf2b0); border-radius: 999px; }
+  .lead-row .n { width: 52px; text-align: right; font-size: 12px; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }
+
+  /* ---- clips ---- */
+  .clips { margin-top: var(--s8); }
+  .clips-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; }
+  .clips-head h2 { font-size: clamp(22px, 2.6vw, 30px); }
+  .clips-head .muted { font-size: 14px; }
+  .clips-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); margin-top: var(--s5); }
+  .clip-card { display: block; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-md);
+    overflow: hidden; box-shadow: var(--sh-sm); transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .5s cubic-bezier(.16,1,.3,1); }
+  .clip-card:not(.soon):hover { transform: translateY(-4px); box-shadow: var(--sh); }
+  .clip-thumb { position: relative; display: block; aspect-ratio: 16 / 9; background: #14260f; }
+  .clip-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .clip-play { position: absolute; top: 50%; left: 50%; translate: -50% -50%; width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; color: #fff; background: rgba(14,22,10,.55); border: 1px solid rgba(255,255,255,.4); backdrop-filter: blur(4px); }
+  .clip-t { position: absolute; right: 10px; bottom: 10px; font-size: 11px; font-weight: 600; color: #fff;
+    background: rgba(14,22,10,.62); padding: 3px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+  .clip-body { display: block; padding: 13px 15px 15px; }
+  .clip-body b { display: block; font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--ink); }
+  .clip-body span { font-size: 12.5px; color: var(--muted); }
+  .clip-card.soon .clip-thumb { display: grid; place-items: center; background: var(--green-soft); }
+  .soon-mark { font-family: var(--font-display); font-size: 40px; font-weight: 500; color: var(--green); }
+  .clip-card.soon a { color: var(--green); font-weight: 600; }
+
+  @media (max-width: 980px) {
+    .board-grid { grid-template-columns: 1fr; }
+    .board-metrics { grid-template-columns: repeat(2, 1fr); }
+    .clips-grid { grid-template-columns: 1fr; }
+    .board-chips .chip:not(.live) { display: none; }
+  }
+</style>

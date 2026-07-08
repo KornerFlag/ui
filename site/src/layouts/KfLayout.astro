@@ -1,18 +1,25 @@
 ---
+import BallSvg from "../components/landing/BallSvg.astro";
 const base = import.meta.env.BASE_URL;
 const {
-  title = "Korner Flag — Coach-ready match analysis",
+  title = "Korner Flag — Coach-ready match analysis from existing footage",
   description = "Korner Flag turns existing match footage into passing, possession, movement, heatmaps and reviewable clips — no wearables, no player setup.",
+  hero = false,
   active = "",
 } = Astro.props;
 
 const navLinks = [
-  { label: "How it works", href: `${base}#how` },
   { label: "Features", href: `${base}#features` },
-  { label: "Match room", href: `${base}room/` },
-  { label: "Dashboard", href: `${base}dashboard/` },
+  { label: "Match room", href: `${base}#room` },
+  { label: "Plans", href: `${base}#plans` },
 ];
 const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
+
+const footCols = [
+  { h: "Product", links: [["Features", `${base}#features`], ["Match room", `${base}room/`], ["Dashboard", `${base}dashboard/`]] },
+  { h: "Get started", links: [["Free analysis", `${base}contact/`], ["Analyze a match", `${base}login/`], ["Sign in", `${base}login/`]] },
+  { h: "Company", links: [["Built for coaches", `${base}#start`], ["Contact", `${base}contact/`]] },
+];
 ---
 <!doctype html>
 <html lang="en">
@@ -22,66 +29,176 @@ const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="icon" href={`${base}kf/logo.png`} />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap" />
   <link rel="stylesheet" href={`${base}kf/styles.css`} />
 </head>
 <body>
-  <header class="nav" id="nav">
-    <div class="container nav-inner">
-      <a class="brand" href={base}>
-        <img src={`${base}kf/logo.png`} alt="Korner Flag logo" />
-        <b>Korner Flag</b>
-      </a>
-      <nav class="nav-links">
-        {navLinks.map((n) => (
-          <a href={n.href} style={active === n.label ? "color:var(--text);background:rgba(16,24,34,.05)" : ""}>{n.label}</a>
-        ))}
-      </nav>
-      <div class="nav-cta">
-        <a class="btn btn-ghost btn-sm nav-free" href={`${base}login/`}>Sign in</a>
-        <a class="btn btn-primary btn-sm" href={`${base}login/`} set:html={`Analyze a match ${arrow}`}></a>
+  <!-- ambient page background: tinted surface + drifting radial glow +
+       oversized pitch-diagram watermark + film grain. Sections re-aim the
+       glow via data-glow-* attributes (observer below). -->
+  <div class="page-bg" aria-hidden="true">
+    <div class="pb-glow"></div>
+    <svg class="pb-pitch" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width=".16">
+      <line x1="0" y1="50" x2="100" y2="50" />
+      <circle cx="50" cy="50" r="17" />
+      <circle cx="50" cy="50" r=".6" fill="currentColor" stroke="none" />
+      <path d="M 0 4 A 4 4 0 0 1 4 0" />
+      <path d="M 96 100 A 4 4 0 0 1 100 96" />
+      <path d="M 30 100 A 20 20 0 0 1 70 100" />
+      <path d="M 70 0 A 20 20 0 0 1 30 0" />
+    </svg>
+    <!-- scroll ball: rolls and weaves down the page as you scroll (JS below) -->
+    <div class="pb-ball"><BallSvg idp="sb" rollClass="sb-roll" /></div>
+  </div>
+  <div class="frame">
+    <header class={`nav ${hero ? "overlay" : "solid"}`}>
+      <div class="container nav-inner">
+        <a class="brand" href={base}>
+          <img src={`${base}kf/logo.png`} alt="Korner Flag logo" />
+          <b>Korner Flag</b>
+        </a>
+        <nav class="nav-links">
+          {navLinks.map((n) => (
+            <a href={n.href} aria-current={active === n.label ? "page" : undefined}>{n.label}</a>
+          ))}
+        </nav>
+        <div class="nav-cta">
+          <a class={`btn btn-sm nav-cta-btn ${hero ? "btn-onphoto" : "btn-primary"}`} href={`${base}login/`} set:html={`Analyze a match ${arrow}`}></a>
+          <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-controls="mobileMenu" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+          </button>
+        </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <main>
-    <slot />
-  </main>
-
-  <style is:global>
-    /* shared app-page utilities (every page clears the fixed 76px nav) */
-    .page-shell { padding: 124px 0 90px; }
-    .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-    .page-head h1 { font-size: clamp(30px, 4vw, 44px); margin-top: 12px; }
-    .page-head p { margin-top: 10px; }
-    .link { color: var(--accent); font-weight: 600; font-size: 14px; }
-    .lcard { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--sh-sm); }
-    .block-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
-    .block-head h2 { font-size: 22px; font-weight: 600; }
-    @media (max-width: 720px) { .page-shell { padding-top: 104px; } }
-  </style>
-
-  <footer class="foot">
-    <div class="container foot-inner">
-      <a class="brand" href={base}><img src={`${base}kf/logo.png`} alt="" style="width:30px;height:30px" /><b style="font-size:17px">Korner Flag</b></a>
-      <nav class="foot-links">
-        <a href={`${base}#how`}>How it works</a>
-        <a href={`${base}#features`}>Features</a>
-        <a href={`${base}room/`}>Match room</a>
-        <a href={`${base}contact/`}>Free analysis</a>
-        <a href={`${base}login/`}>Sign in</a>
+    <div class="mobile-menu" id="mobileMenu" hidden>
+      <nav>
+        {navLinks.map((n) => <a href={n.href}>{n.label}</a>)}
       </nav>
-      <small>© 2026 Korner Flag · Built for coaches</small>
+      <a class="btn btn-primary btn-block" href={`${base}login/`} set:html={`Analyze a match ${arrow}`}></a>
     </div>
-  </footer>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="foot">
+      <div class="container">
+        <div class="foot-top">
+          <div class="foot-brand">
+            <a class="brand" href={base} style="color:var(--on-dark)">
+              <img src={`${base}kf/logo.png`} alt="" style="width:30px;height:30px" />
+              <b>Korner Flag</b>
+            </a>
+            <p>Coach-ready match analysis from the footage you already have — no wearables, no player setup.</p>
+          </div>
+          {footCols.map((c) => (
+            <div class="foot-col">
+              <h5>{c.h}</h5>
+              {c.links.map(([label, href]) => <a href={href}>{label}</a>)}
+            </div>
+          ))}
+        </div>
+        <div class="foot-bottom">
+          <small>© 2026 Korner Flag · Built for coaches</small>
+          <small>Made for the sideline.</small>
+        </div>
+      </div>
+    </footer>
+  </div>
 
   <script is:inline>
-    const nav = document.getElementById("nav");
-    const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 16);
-    onScroll(); window.addEventListener("scroll", onScroll, { passive: true });
-    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.14, rootMargin: "0px 0px -8% 0px" });
+    const io = new IntersectionObserver(
+      (es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }),
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
+    );
     document.querySelectorAll(".reveal:not(.in)").forEach((el) => io.observe(el));
+
+    // mobile menu
+    const tgl = document.getElementById("navToggle");
+    const menu = document.getElementById("mobileMenu");
+    if (tgl && menu) {
+      const setOpen = (open) => {
+        menu.hidden = !open;
+        tgl.setAttribute("aria-expanded", String(open));
+        tgl.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        document.body.style.overflow = open ? "hidden" : "";
+      };
+      tgl.addEventListener("click", () => setOpen(menu.hidden));
+      menu.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => setOpen(false)));
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) setOpen(false); });
+    }
+
+    // in-page anchor clicks: drive the scroll ourselves so every link lands
+    // with the section top flush at the viewport top (sections are 100svh
+    // screens; the nav is a translucent overlay, so no offset)
+    document.querySelectorAll('a[href*="#"]').forEach((a) => {
+      const href = a.getAttribute("href");
+      const hash = href.slice(href.indexOf("#"));
+      const path = href.slice(0, href.indexOf("#"));
+      if (path && path !== location.pathname) return;
+      a.addEventListener("click", (e) => {
+        const target = hash.length > 1 && document.getElementById(hash.slice(1));
+        if (!target) return;
+        e.preventDefault();
+        const top = target.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top, behavior: "smooth" });
+        history.pushState(null, "", hash);
+      });
+    });
+
+    // per-section ambient background — as each section crosses the middle of
+    // the viewport, the page surface cross-fades to its tint and the glow
+    // drifts to that section's position and color
+    const pageBg = document.querySelector(".page-bg");
+    const tinted = document.querySelectorAll("[data-bg]");
+    if (pageBg && tinted.length) {
+      const tio = new IntersectionObserver(
+        (es) => es.forEach((e) => {
+          if (!e.isIntersecting) return;
+          const d = e.target.dataset;
+          pageBg.style.setProperty("--page-bg", d.bg);
+          if (d.glowX) pageBg.style.setProperty("--glow-x", d.glowX);
+          if (d.glowY) pageBg.style.setProperty("--glow-y", d.glowY);
+          if (d.glowC) pageBg.style.setProperty("--glow-c", d.glowC);
+        }),
+        { rootMargin: "-45% 0px -45% 0px", threshold: 0 }
+      );
+      tinted.forEach((el) => tio.observe(el));
+    }
+
+    // scroll ball — rolls and weaves down the viewport as the page scrolls.
+    // It lives in the ambient layer, so it ducks behind dark bands and
+    // re-emerges on light sections. Position/scale on the svg, rotation on
+    // the patch group only, so the lighting stays fixed while it rolls.
+    const sBall = document.querySelector(".pb-ball");
+    const sRoll = document.querySelector(".sb-roll");
+    if (sBall && sRoll && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      let queued = false;
+      const place = () => {
+        queued = false;
+        const max = document.documentElement.scrollHeight - innerHeight;
+        const p = max > 0 ? window.scrollY / max : 0;
+        const x = innerWidth * (0.5 + 0.4 * Math.sin(p * Math.PI * 3.2));
+        const y = innerHeight * (0.08 + 0.84 * p);
+        const s = 0.75 + 0.6 * Math.abs(Math.sin(p * Math.PI * 2.1));
+        sBall.style.transform = `translate(-50%,-50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
+        sRoll.style.transform = `rotate(${(window.scrollY * 0.35).toFixed(1)}deg)`;
+      };
+      const queue = () => { if (!queued) { queued = true; requestAnimationFrame(place); } };
+      addEventListener("scroll", queue, { passive: true });
+      addEventListener("resize", queue, { passive: true });
+      place();
+    }
+
+    // scroll-aware overlay nav (adds solid background once scrolled off the hero)
+    const onav = document.querySelector(".nav.overlay");
+    if (onav) {
+      const f = () => onav.classList.toggle("scrolled", window.scrollY > 24);
+      f(); window.addEventListener("scroll", f, { passive: true });
+    }
   </script>
 </body>
 </html>

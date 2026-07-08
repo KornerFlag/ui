@@ -1,0 +1,46 @@
+---
+/** FeatureGrid — big heading + three tall photo cards (Baseline "Training Paths"). */
+import ScrollNext from "./ScrollNext.astro";
+const base = import.meta.env.BASE_URL;
+const cards = [
+  { img: `${base}images/landing/grid-passing.webp`, label: "Passing & possession",
+    body: "How the ball was circulated, which players linked phases, and where possession broke down." },
+  { img: `${base}images/landing/grid-tactics.webp`, label: "Formation & shape",
+    body: "Team shape and spacing across the match, from build-up to the final third." },
+  { img: `${base}images/landing/grid-movement.webp`, label: "Movement & distance",
+    body: "Distance covered and movement load by player — see who carried the work." },
+];
+---
+<section class="paths section" id="features" data-bg="#E6EBE0" data-glow-x="14%" data-glow-y="34%" data-glow-c="rgba(47,122,74,.20)">
+  <div class="container">
+    <h2 class="paths-head reveal">Insight designed<br />for every match.</h2>
+    <div class="paths-cards">
+      {cards.map((c, i) => (
+        <article class="pcard reveal" data-d={String(i + 1)}>
+          <img src={c.img} alt={c.label} loading="lazy" />
+          <div class="pcard-scrim"></div>
+          <div class="pcard-body">
+            <h3>{c.label}</h3>
+            <p>{c.body}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+  <ScrollNext to="room" />
+</section>
+
+<style>
+  .paths { position: relative; background: transparent; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: var(--s8) 0; }
+  .paths-head { font-size: clamp(32px, 5vw, 60px); font-weight: 600; letter-spacing: -.03em; line-height: 1.02; margin-bottom: var(--s8); }
+  .paths-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); }
+  .pcard { position: relative; border-radius: var(--r-md); overflow: hidden; aspect-ratio: 4 / 5; background: var(--green-deep);
+    box-shadow: var(--sh-sm); transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .5s cubic-bezier(.16,1,.3,1); }
+  .pcard:hover { transform: translateY(-4px); box-shadow: var(--sh); }
+  .pcard img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .pcard-scrim { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(12,20,8,.88) 0%, rgba(12,20,8,.28) 44%, rgba(12,20,8,0) 70%); }
+  .pcard-body { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s5); color: #fff; }
+  .pcard-body h3 { font-size: clamp(19px, 1.7vw, 23px); font-weight: 600; letter-spacing: -.02em; color: #fff; }
+  .pcard-body p { font-size: 13.5px; line-height: 1.5; color: rgba(255,255,255,.82); margin: var(--s2) 0 0; max-width: 34ch; }
+  @media (max-width: 820px){ .paths-cards { grid-template-columns: 1fr; } .pcard { aspect-ratio: 16 / 10; } }
+</style>

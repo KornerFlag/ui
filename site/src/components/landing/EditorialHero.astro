@@ -1,0 +1,661 @@
+---
+/**
+ * EditorialHero — full-height pitch hero (soccer).
+ * The overlay is a physics-driven 11v11 sequence on a fixed choreography:
+ *   pass → pass → tackle → counterattack → shot → save → goal off the rebound
+ * …then the ball returns to the middle and the same sequence mirrors to the
+ * other end. Players move on damped springs (constant micro-adjustments,
+ * breaking runners on the counter), the ball has momentum + friction with a
+ * first-touch control ramp, and the HUD shows just three things: passes when
+ * they happen, shots when they happen, otherwise the on-ball player's live
+ * distance. One rAF loop, transforms only. Reduced-motion → static frame.
+ */
+import BallSvg from "./BallSvg.astro";
+const base = import.meta.env.BASE_URL;
+const {
+  image = `${base}images/landing/hero-field.jpg`,
+  headline = "Master the match. Anytime.",
+} = Astro.props;
+
+/* formation anchors as fractions of the band — pitch runs left → right;
+   home (red) defends the left goal, away (white) defends the right */
+const home = [
+  { n: 1, x: 0.035, y: 0.50 }, { n: 4, x: 0.16, y: 0.40 }, { n: 5, x: 0.16, y: 0.61 },
+  { n: 2, x: 0.22, y: 0.20 }, { n: 3, x: 0.22, y: 0.80 }, { n: 6, x: 0.32, y: 0.52 },
+  { n: 8, x: 0.42, y: 0.34 }, { n: 10, x: 0.47, y: 0.65 }, { n: 7, x: 0.60, y: 0.20 },
+  { n: 11, x: 0.61, y: 0.80 }, { n: 9, x: 0.68, y: 0.46 },
+];
+const away = [
+  { n: 1, x: 0.962, y: 0.50 }, { n: 3, x: 0.845, y: 0.28 }, { n: 6, x: 0.862, y: 0.44 },
+  { n: 5, x: 0.862, y: 0.58 }, { n: 2, x: 0.845, y: 0.73 }, { n: 8, x: 0.77, y: 0.40 },
+  { n: 4, x: 0.77, y: 0.62 }, { n: 7, x: 0.67, y: 0.25 }, { n: 10, x: 0.655, y: 0.52 },
+  { n: 11, x: 0.67, y: 0.77 }, { n: 9, x: 0.55, y: 0.60 },
+];
+const goal = { x: 0.945, y: 0.50 };
+---
+<section class="hero" id="top" data-bg="#EDECE9" data-glow-x="70%" data-glow-y="15%" data-glow-c="rgba(63,107,52,.19)">
+  <div class="hero-band bleed" id="heroBand">
+    <img class="hero-img" src={image} alt="Aerial view of a full soccer pitch with goals at both ends" fetchpriority="high" />
+    <div class="hero-scrim" aria-hidden="true"></div>
+
+    <div class="hero-fx" aria-hidden="true">
+      <!-- 22 tracked players (sim moves them via transform deltas) -->
+      {home.map((p, i) => (
+        <span class="pdot" data-k={`h${p.n}`} style={`left:${p.x * 100}%;top:${p.y * 100}%;animation-delay:${(0.2 + i * 0.05).toFixed(2)}s`}></span>
+      ))}
+      {away.map((p, i) => (
+        <span class="pdot w" data-k={`a${p.n}`} style={`left:${p.x * 100}%;top:${p.y * 100}%;animation-delay:${(0.35 + i * 0.05).toFixed(2)}s`}></span>
+      ))}
+
+      <!-- the ball (position driven by the sim, momentum + friction) -->
+      <div class="hero-ball" id="heroBall">
+        <span class="hero-ball-reticle">
+          <svg viewBox="0 0 100 100">
+            <circle class="ret-base" cx="50" cy="50" r="34"/>
+            <g class="ret-spin">
+              <circle class="ret-arcs" cx="50" cy="50" r="34"/>
+              <circle class="ret-dot" cx="50" cy="16" r="2"/>
+            </g>
+          </svg>
+        </span>
+        <span class="hero-ball-dot">
+          <BallSvg idp="hb" rollClass="ball-roll" />
+        </span>
+        <span class="hero-ball-tag"><i></i><b id="spdVal">18.4</b>&nbsp;km/h</span>
+      </div>
+
+      <!-- goal payoff (repositioned + fired by the sim when the goal lands) -->
+      <div class="goal-fx" id="goalFx" style={`left:${goal.x * 100}%;top:${goal.y * 100}%`}>
+        <span class="goal-ring"></span>
+        <span class="goal-chip">Goal</span>
+        <span class="goal-burst">
+          {Array.from({ length: 12 }).map((_, i) => <i class={`spark ${i % 3 === 0 ? "w" : ""}`}></i>)}
+        </span>
+      </div>
+
+      <!-- goal banner (fired with the goal, slides up + fades) -->
+      <div class="goal-banner" id="goalBanner">
+        <span class="gb-word">Goal</span>
+        <span class="gb-meta">player #<b id="gbNum">9</b></span>
+      </div>
+    </div>
+
+    <div class="container hero-inner">
+      <div class="hero-hud">
+        <span class="hud-live"><i></i>Live tracking</span>
+        <div class="hud-stat" id="hudA"><b><span class="v">642</span><em class="u">m</em></b><span class="l">player #8 · distance</span></div>
+      </div>
+
+      <div class="hero-content">
+        <h1 class="hero-h1">{headline}</h1>
+      </div>
+
+      <div class="hero-proof">
+        <span class="hero-avatars"><i>KF</i><i>NC</i><i>WA</i></span>
+        <span>Built with a college program</span>
+      </div>
+
+      <a class="hero-scroll" href="#features" aria-label="Scroll down to see features">
+        <span class="hs-label">Scroll</span>
+        <span class="hs-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+        </span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<script is:inline define:vars={{ HOME: home, AWAY: away }}>
+  (function () {
+    "use strict";
+    const band = document.getElementById("heroBand");
+    if (!band || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ballEl = document.getElementById("heroBall");
+    const rollEl = ballEl.querySelector(".ball-roll");
+    const spdEl = document.getElementById("spdVal");
+    const goalFx = document.getElementById("goalFx");
+    const sparks = goalFx.querySelectorAll(".spark");
+    const hud = document.getElementById("hudA");
+    const hudV = hud.querySelector(".v"), hudU = hud.querySelector(".u"), hudL = hud.querySelector(".l");
+    const rnd = Math.random;
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    const jit = (a, b) => a + rnd() * (b - a);
+
+    let W = band.clientWidth, H = band.clientHeight;
+    // Align the overlay to the ACTUAL pitch in the photo. The pitch markings
+    // sit inside these image fractions (measured: halfway line ≈ 47.5%, goals
+    // near the edges); we map sim coords 0..1 onto that rect, accounting for
+    // object-fit:cover crop + object-position, so dots/ball/goal land on the
+    // painted lines at every viewport instead of on the raw band.
+    const IW = 2000, IH = 1333, OY = 0.48;
+    const OVERSCAN = 1.06;                                // must match .hero-img width
+    const PITCH = { XL: 0.035, XR: 0.915, YT: 0.085, YB: 0.915 };
+    let gX0 = 0, gXS = 1, gY0 = 0, gYS = 1;
+    function geom() {
+      W = band.clientWidth; H = band.clientHeight;
+      // image box is overscanned wide + left-anchored (crops the right edge);
+      // replicate object-fit:cover within that box
+      const bw = W * OVERSCAN, bh = H;
+      const s = Math.max(bw / IW, bh / IH), dw = IW * s, dh = IH * s;
+      const offX = 0, offY = (bh - dh) * OY;               // left-anchored X
+      gX0 = offX + PITCH.XL * dw; gXS = (PITCH.XR - PITCH.XL) * dw;
+      gY0 = offY + PITCH.YT * dh; gYS = (PITCH.YB - PITCH.YT) * dh;
+    }
+    const sx = (f) => gX0 + f * gXS;
+    const sy = (f) => gY0 + f * gYS;
+    geom();
+    addEventListener("resize", geom, { passive: true });
+
+    /* ---------- players ---------- */
+    const dots = band.querySelectorAll(".pdot");
+    const P = [];
+    [HOME, AWAY].forEach((team, t) => {
+      team.forEach((d, i) => {
+        P.push({
+          el: dots[t * 11 + i], team: t, gk: d.n === 1, n: d.n,
+          bx: d.x, by: d.y, x: d.x, y: d.y, vx: 0, vy: 0,
+          tx: d.x, ty: d.y, ag: 1,                      // smoothed target + agility
+          wx: 0, wy: 0, gwx: 0, gwy: 0, wt: rnd() * 1.5,
+          fx: d.n === 1 ? 0.01 : 0.10 + rnd() * 0.08,
+          fy: d.n === 1 ? 0 : 0.06 + rnd() * 0.06,
+          cap: d.n === 1 ? 0.05 : 0.055 + rnd() * 0.02,
+          dist: 250 + rnd() * 550,                       // seeded mid-match
+        });
+      });
+    });
+    const DIR = [1, -1], GOALX = [0.955, 0.045];
+    const gks = [P[0], P[11]];
+    const near = (x, y, filter) => {
+      let best = null, bd = 9;
+      for (const p of P) { if (filter && !filter(p)) continue;
+        const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = p; } }
+      return best;
+    };
+    const mates = (t, not) => P.filter((p) => p.team === t && !p.gk && p !== not);
+    const pulse = (p) => p && p.el.animate(
+      [{ scale: "1", boxShadow: "0 1px 5px rgba(0,0,0,.45), 0 0 0 0 rgba(124,242,176,.7)" },
+       { scale: "1.28", boxShadow: "0 1px 5px rgba(0,0,0,.45), 0 0 0 8px rgba(124,242,176,.18)" },
+       { scale: "1", boxShadow: "0 1px 5px rgba(0,0,0,.45), 0 0 0 13px rgba(124,242,176,0)" }],
+      { duration: 520, easing: "ease-out" });
+
+    /* ---------- ball ---------- */
+    const B = { x: 0.5, y: 0.5, vx: 0, vy: 0, state: "dead", kind: "pass",
+      carrier: null, receiver: null, hunter: null, fr: 2.2, freeT: 0,
+      holdT: 0, windup: 0, ctl: 1 };
+    let lastCarrier = P[6], rollDeg = 0, spdNow = 12;
+
+    /* ---------- scripted director ----------
+       cycle even: red builds → white tackles → counter to the LEFT goal
+       cycle odd:  mirrored → counter to the RIGHT goal                   */
+    const D = { cycle: 0, phase: "restart", n: 0, t: 0, watchdog: 0,
+      build: 0, counter: 1, tackler: null, runners: [], plan: null,
+      dead: null, wrong: 1, scorer: 9 };
+    const S = { pass: 43, shots: 6, saves: 2, tk: 5 };
+
+    function setupCycle() {
+      D.build = D.cycle % 2 === 0 ? 0 : 1;
+      D.counter = 1 - D.build;
+      D.n = 0; D.tackler = null; D.runners = []; D.plan = null;
+    }
+    function setPhase(ph) { D.phase = ph; D.watchdog = 0; }
+    function startRestart() {
+      setupCycle();
+      B.state = "dead"; B.carrier = null; B.receiver = null; B.hunter = null;
+      B.vx = B.vy = 0; B.plan = null; B.x = 0.5; B.y = 0.5;   // exact center spot
+      D.dead = { x: 0.5, y: 0.5, taker: near(0.5, 0.5, (p) => p.team === D.build && !p.gk), delay: jit(1, 1.6) };
+      setPhase("restart");
+    }
+
+    function giveTo(p) {
+      B.state = "carried"; B.carrier = p; lastCarrier = p;
+      B.receiver = null; B.hunter = null; B.ctl = 0;      // first touch ramps in
+      // reception = settle onto the ball, NOT a kick on top of chase velocity.
+      // Damp the receiver's inbound speed so they decelerate into control
+      // instead of overshooting and springing back (the "bounce" bug).
+      p.vx *= 0.35; p.vy *= 0.35;
+      B.vx *= 0.2; B.vy *= 0.2;
+      pulse(p);
+    }
+    function launch(tx, ty, speed, fr, kind, receiver) {
+      const d = Math.hypot(tx - B.x, ty - B.y) || 0.001;
+      B.vx = ((tx - B.x) / d) * speed; B.vy = ((ty - B.y) / d) * speed;
+      B.state = "free"; B.kind = kind; B.fr = fr; B.freeT = 0;
+      B.receiver = receiver || null; B.carrier = null;
+    }
+
+    function pickBuildReceiver(c) {
+      let best = null, bs = -9;
+      for (const m of mates(D.build, c)) {
+        const d = Math.hypot(m.x - c.x, m.y - c.y);
+        if (d < 0.09 || d > 0.33) continue;
+        const s = 2 - Math.abs(d - 0.2) * 6 - Math.abs(m.y - 0.5) * 1.2 + rnd() * 1.5;
+        if (s > bs) { bs = s; best = m; }
+      }
+      return best || mates(D.build, c)[0];
+    }
+    function pickCounterReceiver(c) {
+      const dir = DIR[D.counter];
+      let best = null, bs = -9;
+      for (const m of mates(D.counter, c)) {
+        const fwd = (m.x - c.x) * dir;
+        const d = Math.hypot(m.x - c.x, m.y - c.y);
+        if (fwd < 0.04 || d > 0.42) continue;
+        const s = fwd * 5 - Math.abs(m.y - 0.5) * 1.5 + rnd();
+        if (s > bs) { bs = s; best = m; }
+      }
+      return best || mates(D.counter, c).slice().sort((a, b) => (b.x - a.x) * dir)[0];
+    }
+
+    function doPass(r) {
+      const lead = jit(0.28, 0.5);
+      const tx = clamp(r.x + r.vx * lead, 0.04, 0.96), ty = clamp(r.y + r.vy * lead, 0.06, 0.94);
+      const d = Math.hypot(tx - B.x, ty - B.y);
+      S.pass++; flash("passes", String(S.pass), 2.2);
+      launch(tx, ty, d * 2.6 + 0.12, 2.2, "pass", r);
+    }
+    function doShot(rebound) {
+      const t = D.counter, gk = gks[1 - t];
+      if (B.carrier) D.scorer = B.carrier.n;
+      S.shots++; flash("shots", String(S.shots), 2.2);
+      const gkOff = gk.y - 0.5;
+      D.wrong = gkOff === 0 ? (rnd() < 0.5 ? 1 : -1) : Math.sign(gkOff);
+      const ty = rebound
+        ? clamp(0.5 - D.wrong * 0.032, 0.464, 0.536)     // far post, keeper wrong-footed
+        : clamp(gk.y + (rnd() < 0.5 ? -1 : 1) * 0.026, 0.464, 0.536); // savable
+      launch(GOALX[t], ty, jit(1.35, 1.7), 0.35, "shot", gk);
+      setPhase(rebound ? "shot2fly" : "shotfly");
+    }
+
+    /* carrier's hold expired → set up the next scripted action */
+    function step() {
+      const c = B.carrier;
+      if (D.phase === "build") {
+        D.plan = { do: "pass", r: pickBuildReceiver(c) };
+        B.receiver = D.plan.r; B.windup = jit(0.12, 0.36);
+      } else if (D.phase === "counter") {
+        D.plan = { do: "pass", r: pickCounterReceiver(c) };
+        B.receiver = D.plan.r; B.windup = jit(0.1, 0.28);
+      } else if (D.phase === "shot") {
+        D.plan = { do: "shot" }; B.windup = jit(0.14, 0.28);
+      } else if (D.phase === "rebound") {
+        D.plan = { do: "shot", rebound: true }; B.windup = 0.09;
+      }
+    }
+    function fire() {
+      if (!D.plan) return;
+      if (D.plan.do === "pass") { doPass(D.plan.r); D.n++; }
+      else doShot(!!D.plan.rebound);
+      D.plan = null;
+    }
+
+    /* a planned reception — phase transitions live here */
+    function received(p) {
+      giveTo(p);
+      if (D.phase === "build") {
+        if (D.n >= 2) {
+          D.tackler = near(p.x, p.y, (q) => q.team === D.counter && !q.gk);
+          D.t = jit(0.5, 0.85); B.holdT = 9;
+          setPhase("tackle");
+        } else B.holdT = jit(0.45, 0.85);
+      } else if (D.phase === "counter") {
+        if (D.n >= 2) { setPhase("shot"); B.holdT = jit(0.22, 0.42); }
+        else B.holdT = jit(0.28, 0.55);
+      } else if (D.phase === "rebound") {
+        B.holdT = 0.12;                                   // one-touch finish
+      } else B.holdT = jit(0.4, 0.7);
+    }
+
+    const banner = document.getElementById("goalBanner");
+    const bannerNum = document.getElementById("gbNum");
+    function fireGoal(t) {
+      bannerNum.textContent = String(D.scorer || 9);
+      banner.animate([
+        { opacity: 0, transform: "translate(-50%, 14px) scale(.96)", easing: "cubic-bezier(.16,1,.3,1)" },
+        { opacity: 1, transform: "translate(-50%, 0) scale(1)", offset: 0.16 },
+        { opacity: 1, transform: "translate(-50%, 0)", offset: 0.78, easing: "ease-in" },
+        { opacity: 0, transform: "translate(-50%, -12px)" },
+      ], { duration: 2300, fill: "both" });
+      // ring is centered on the ball where it rests in the net
+      goalFx.style.left = `${sx(B.x).toFixed(1)}px`;
+      goalFx.style.top = `${sy(clamp(B.y, 0.42, 0.58)).toFixed(1)}px`;
+      goalFx.animate([
+        { opacity: 0, scale: "0.7", easing: "cubic-bezier(.2,.9,.3,1)" },
+        { opacity: 1, scale: "1", offset: 0.18 }, { opacity: 1, offset: 0.78 }, { opacity: 0 },
+      ], { duration: 2100 });
+      sparks.forEach((sp, i) => {
+        const ang = (i / sparks.length) * Math.PI * 2 + rnd() * 0.5;
+        const dd = 26 + (i % 3) * 9;
+        sp.animate([
+          { opacity: 0, transform: "translate(0,0) scale(1)" },
+          { opacity: 1, offset: 0.12 },
+          { opacity: 0, transform: `translate(${Math.cos(ang) * dd}px, ${Math.sin(ang) * dd}px) scale(.35)` },
+        ], { duration: 750 + (i % 4) * 110, delay: 120 + (i % 4) * 70, easing: "cubic-bezier(.2,.7,.3,1)", fill: "backwards" });
+      });
+    }
+
+    /* ---------- HUD: passes / shots on the event, else on-ball distance ---------- */
+    let flashT = 0, flashLabel = "", flashVal = "", shownLabel = "player #8 · distance", swapping = false;
+    function flash(l, v, t) { flashLabel = l; flashVal = v; flashT = t; }
+    function hudTick() {
+      const useFlash = flashT > 0;
+      const c = B.carrier || lastCarrier;
+      const label = useFlash ? flashLabel : `player #${c.n} · distance`;
+      const unit = useFlash ? "" : "m";
+      const val = useFlash ? flashVal : String(Math.round(c.dist));
+      if (label !== shownLabel && !swapping) {
+        // two-phase swap: fade out + rise, change text, fade in from below
+        swapping = true; shownLabel = label;
+        hud.animate(
+          [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(-6px)" }],
+          { duration: 240, easing: "ease-in", fill: "forwards" }
+        ).onfinish = () => {
+          hudL.textContent = label; hudU.textContent = unit; hudV.textContent = val;
+          hud.animate(
+            [{ opacity: 0, transform: "translateY(7px)" }, { opacity: 1, transform: "translateY(0)" }],
+            { duration: 430, easing: "cubic-bezier(.16,1,.3,1)", fill: "forwards" }
+          ).onfinish = () => { swapping = false; };
+        };
+      } else if (!swapping && label === shownLabel) hudV.textContent = val;
+    }
+
+    /* ---------- main loop ---------- */
+    let last = performance.now(), textAcc = 0, ballShown = false;
+    function frame(now) {
+      requestAnimationFrame(frame);
+      let dt = (now - last) / 1000; last = now;
+      dt = clamp(dt, 0.001, 0.05);
+      D.watchdog += dt; flashT -= dt;
+      if (D.watchdog > 9) startRestart();                 // can never stall
+
+      /* -- director -- */
+      if (B.state === "carried") {
+        if (D.plan && B.windup > 0) { B.windup -= dt; if (B.windup <= 0) fire(); }
+        else if (!D.plan && D.phase !== "tackle") { B.holdT -= dt; if (B.holdT <= 0) step(); }
+        if (D.phase === "tackle" && D.tackler) {
+          D.t -= dt;
+          const c = B.carrier;
+          if (D.t <= 0 && Math.hypot(D.tackler.x - c.x, D.tackler.y - c.y) < 0.035) {
+            S.tk++;
+            const dir = DIR[D.counter];
+            launch(clamp(B.x + dir * jit(0.05, 0.09), 0.05, 0.95), clamp(B.y + (rnd() - 0.5) * 0.08, 0.08, 0.92),
+              jit(0.24, 0.34), 2.6, "loose", null);
+            B.hunter = D.tackler;
+            // two runners break ahead for the counter
+            D.runners = mates(D.counter, D.tackler)
+              .slice().sort((a, b) => (b.x - a.x) * dir).slice(0, 2);
+            setPhase("counterloose"); D.n = 0;
+          }
+        }
+      } else if (B.state === "dead" && D.phase === "restart") {
+        const d = D.dead;
+        B.x += (d.x - B.x) * Math.min(1, 6 * dt); B.y += (d.y - B.y) * Math.min(1, 6 * dt);
+        d.delay -= dt;
+        if (d.delay <= 0 && Math.hypot(d.taker.x - d.x, d.taker.y - d.y) < 0.04) {
+          received(d.taker); setPhase("build"); D.n = 0; B.holdT = jit(0.5, 0.9);
+        }
+      } else if (D.phase === "celebrate") {
+        D.t -= dt;
+        // ball rests in the net (~1.3s), then glides back to the center spot
+        if (D.t < 1.5) {
+          B.x += (0.5 - B.x) * Math.min(1, 3 * dt);
+          B.y += (0.5 - B.y) * Math.min(1, 3 * dt);
+        }
+        if (D.t <= 0) { B.x = 0.5; B.y = 0.5; D.cycle++; startRestart(); }
+      }
+
+      /* -- ball physics -- */
+      const bx0 = B.x, by0 = B.y;
+      if (B.state === "carried") {
+        const c = B.carrier;
+        B.ctl = Math.min(1, B.ctl + dt * 2.5);            // first-touch → close control
+        const rate = 3 + 8 * B.ctl;
+        const sp = Math.hypot(c.vx, c.vy) || 0.001;
+        const ux = c.vx / sp, uy = c.vy / sp;
+        const wob = B.windup > 0 ? -0.5 : 1;              // slight backswing pre-kick
+        const sway = Math.sin(now / 160) * 0.003;         // dribble wobble
+        B.x += (c.x + ux * 0.011 * wob - uy * sway - B.x) * Math.min(1, rate * dt);
+        B.y += (c.y + uy * 0.011 * wob + ux * sway + 0.012 - B.y) * Math.min(1, rate * dt);
+      } else if (B.state === "free") {
+        B.freeT += dt;
+        B.x += B.vx * dt; B.y += B.vy * dt;
+        const f = Math.exp(-B.fr * dt); B.vx *= f; B.vy *= f;
+        const speed = Math.hypot(B.vx, B.vy);
+
+        if (B.kind === "shot") {
+          const t = D.counter, gx = GOALX[t], gk = gks[1 - t];
+          const crossed = DIR[t] === 1 ? B.x >= gx - 0.01 : B.x <= gx + 0.01;
+          const atKeeper = Math.hypot(gk.x - B.x, gk.y - B.y) < 0.028;
+          if (D.phase === "shotfly" && (atKeeper || crossed)) {
+            S.saves++; pulse(gk);                          // SAVE — parried back out
+            B.x = gx - DIR[t] * 0.018;
+            B.vx = -DIR[t] * jit(0.3, 0.42);
+            B.vy = (B.y < 0.5 ? 1 : -1) * jit(0.05, 0.14);
+            B.kind = "loose"; B.fr = 1.9;
+            B.hunter = near(B.x - DIR[t] * 0.06, B.y, (p) => p.team === t && !p.gk);
+            setPhase("reboundloose");
+          } else if (D.phase === "shot2fly") {
+            // the finish flies past the keeper and BEYOND the goal line into
+            // the painted net (sim >1.0 renders past PITCH.XR), then rests
+            const inNet = DIR[t] === 1 ? B.x >= 1.02 : B.x <= -0.02;
+            if (inNet) {
+              B.x = DIR[t] === 1 ? 1.035 : -0.035;         // settle in the net
+              B.vx = B.vy = 0; B.state = "dead";
+              fireGoal(t);
+              D.t = 2.8; setPhase("celebrate");            // hold in net, then reset
+            }
+          }
+        } else if (B.kind === "pass") {
+          const r = B.receiver;
+          if (r && B.freeT > 0.12 && Math.hypot(r.x - B.x, r.y - B.y) < 0.017) received(r);
+          else if (speed < 0.05 && r) { /* under-hit — receiver comes to it */ }
+        } else if (B.kind === "loose") {
+          const h = B.hunter;
+          if (h && B.freeT > 0.12 && Math.hypot(h.x - B.x, h.y - B.y) < 0.018) {
+            giveTo(h);
+            if (D.phase === "counterloose") { setPhase("counter"); B.holdT = jit(0.28, 0.5); }
+            else if (D.phase === "reboundloose") { setPhase("rebound"); B.holdT = 0.12; }
+            else B.holdT = jit(0.4, 0.7);
+          }
+        }
+        B.x = clamp(B.x, -0.05, 1.05); B.y = clamp(B.y, 0.04, 0.96);  // allow into the net
+      }
+
+      /* -- players (damped springs → eased accel/decel) -- */
+      const counterPhase = ["counterloose", "counter", "shot", "shotfly", "reboundloose", "rebound", "shot2fly"].includes(D.phase);
+      for (const p of P) {
+        let tx, ty, agil = 1;
+        if (p.gk) {
+          tx = p.bx + (B.x - 0.5) * 0.015;
+          ty = 0.5 + clamp((B.y - 0.5) * 0.4, -0.055, 0.055);
+          if (B.kind === "shot" && B.receiver === p) {
+            ty = D.phase === "shot2fly" ? 0.5 + D.wrong * 0.05 : clamp(B.y, 0.45, 0.55);
+            agil = 2.6;
+          }
+        } else {
+          const poss = (B.carrier ? B.carrier.team : D.build) === p.team;
+          const push = counterPhase && p.team === D.counter ? 0.12 : poss ? 0.05 : -0.035;
+          tx = p.bx + (B.x - 0.5) * p.fx + DIR[p.team] * push;
+          ty = p.by + (B.y - 0.5) * p.fy;
+          // micro-adjustments drift smoothly toward a new goal, never jump
+          p.wt -= dt;
+          if (p.wt <= 0) { p.wt = 0.9 + rnd() * 1.8; p.gwx = (rnd() - 0.5) * 0.03; p.gwy = (rnd() - 0.5) * 0.03; }
+          p.wx += (p.gwx - p.wx) * Math.min(1, 1.6 * dt);
+          p.wy += (p.gwy - p.wy) * Math.min(1, 1.6 * dt);
+          tx += p.wx; ty += p.wy;
+          if (D.runners.includes(p) && counterPhase) {
+            const dir = DIR[D.counter];
+            tx = clamp(B.x + dir * 0.2, 0.08, 0.92);
+            ty = 0.5 + (D.runners.indexOf(p) === 0 ? -0.11 : 0.11);
+            agil = 1.8;
+          }
+          if (p === B.carrier) { tx = p.x + DIR[p.team] * (counterPhase ? 0.04 : 0.015); ty = p.y; agil = 0.85; }
+          if (p === B.receiver && B.state === "carried") { tx = (p.x * 2 + B.x) / 3; ty = (p.y * 2 + B.y) / 3; agil = 1.3; }
+          if (p === B.receiver && B.state === "free") {
+            // aim just SHORT of the ball's path so the player arrives onto it
+            // and stops, rather than leading past it and springing back
+            const dist = Math.hypot(B.x - p.x, B.y - p.y);
+            const lead = dist > 0.14 ? 0.12 : 0.0;
+            tx = B.x + B.vx * lead; ty = B.y + B.vy * lead; agil = 1.5;
+          }
+          if (p === B.hunter && B.state === "free") { tx = B.x + B.vx * 0.15; ty = B.y + B.vy * 0.15; agil = 1.8; }
+          if (D.phase === "tackle" && p === D.tackler) { tx = B.carrier.x; ty = B.carrier.y; agil = 1.8; }
+          if (B.state === "dead" && D.phase === "restart" && p === D.dead.taker) { tx = D.dead.x; ty = D.dead.y; agil = 1.6; }
+        }
+        tx = clamp(tx, 0.03, 0.97); ty = clamp(ty, 0.05, 0.95);
+        // role switches GLIDE: the target and agility themselves are eased,
+        // so a player never snaps direction when their assignment changes
+        p.ag += (agil - p.ag) * Math.min(1, 4 * dt);
+        const tf = Math.min(1, (3 + 2.5 * p.ag) * dt);
+        p.tx += (tx - p.tx) * tf; p.ty += (ty - p.ty) * tf;
+        // critically (slightly over) damped: damping tracks sqrt(k) so agile
+        // players decelerate into their target instead of overshooting it
+        const k = 2.7 * p.ag, dmp = 2.15 * Math.sqrt(k);
+        p.vx += ((p.tx - p.x) * k - p.vx * dmp) * dt;
+        p.vy += ((p.ty - p.y) * k - p.vy * dmp) * dt;
+        // soft speed cap — decays toward the cap instead of hard-clamping,
+        // so players accelerate and settle like runners, not like the ball
+        const sp = Math.hypot(p.vx, p.vy), cap = p.cap * (0.6 + 0.7 * p.ag);
+        if (sp > cap) { const f = Math.pow(cap / sp, Math.min(1, 9 * dt)); p.vx *= f; p.vy *= f; }
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        p.dist += Math.hypot(p.vx, p.vy) * 105 * dt;
+        p.el.style.left = `${sx(p.x).toFixed(1)}px`; p.el.style.top = `${sy(p.y).toFixed(1)}px`;
+      }
+
+      /* -- render ball + tag -- */
+      if (!ballShown) { ballEl.style.opacity = "1"; ballShown = true; }
+      ballEl.style.left = `${(sx(B.x) - 15).toFixed(1)}px`; ballEl.style.top = `${(sy(B.y) - 15).toFixed(1)}px`;
+      rollDeg += (B.x - bx0) * W * 0.85 + Math.abs((B.y - by0) * H) * 0.2;
+      rollEl.style.transform = `rotate(${rollDeg.toFixed(1)}deg)`;
+      const step2 = Math.hypot((B.x - bx0) * W, (B.y - by0) * H) * (105 / W);
+      spdNow += ((step2 / dt) * 3.6 - spdNow) * Math.min(1, 8 * dt);
+      tagOpacity();
+
+      textAcc += dt;
+      if (textAcc > 0.125) {
+        textAcc = 0;
+        // the sim runs faster than real time — calibrate to football numbers
+        // (passes ≈ 25–40 km/h, shots ≈ 100+, dribbles a few km/h)
+        spdEl.textContent = (spdNow * 0.2).toFixed(1);
+        hudTick();
+      }
+    }
+    const tagNode = ballEl.querySelector(".hero-ball-tag");
+    function tagOpacity() { tagNode.style.opacity = B.state === "dead" ? "0" : "1"; }
+
+    startRestart();
+    requestAnimationFrame(frame);
+  })();
+</script>
+
+<style>
+  .hero-band { position: relative; height: 100svh; overflow: hidden; isolation: isolate; background: var(--green-deep); color: #fff; }
+  /* overscan left-anchored: crops the right ~5% so the pitch's halfway line
+     (at 47.5% of the photo) lands on screen center. Overlay geom() matches. */
+  .hero-img { position: absolute; top: 0; left: 0; height: 100%; width: 106%; max-width: none; object-fit: cover; object-position: left 48%; }
+  .hero-scrim { position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(14,22,10,.52) 0%, rgba(14,22,10,0) 24%),
+                linear-gradient(0deg, rgba(14,22,10,.74) 0%, rgba(14,22,10,.08) 38%, rgba(14,22,10,0) 58%); }
+
+  .hero-fx { position: absolute; inset: 0; pointer-events: none; }
+
+  /* ---- the ball (position + roll driven by the sim) ---- */
+  .hero-ball { position: absolute; left: 0; top: 0; width: 30px; height: 30px; opacity: 0;
+    transition: opacity .5s var(--ease); will-change: transform; }
+  .hero-ball-dot { position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%,-50%); border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,.4); z-index: 2; }
+
+  /* thin double-ring tracker: faint base circle + two rotating arc segments */
+  .hero-ball-reticle { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; transform: translate(-50%,-50%); filter: drop-shadow(0 1px 5px rgba(0,0,0,.5)); }
+  .hero-ball-reticle svg { display: block; width: 54px; height: 54px; overflow: visible; }
+  .ret-base { fill: none; stroke: rgba(234,251,228,.3); stroke-width: 1.1; }
+  .ret-arcs { fill: none; stroke: rgba(234,251,228,.95); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 70 36.815; }
+  .ret-dot { fill: #7cf2b0; }
+  .ret-spin { transform-box: view-box; transform-origin: 50% 50%; animation: ret-spin 7s linear infinite; }
+  @keyframes ret-spin { to { transform: rotate(360deg); } }
+  .hero-ball-tag { position: absolute; left: 26px; top: -10px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    font-size: 11px; font-weight: 600; color: #eafbe4; background: rgba(14,22,10,.72); border: 1px solid rgba(234,251,228,.32);
+    padding: 3px 9px; border-radius: 999px; backdrop-filter: blur(5px); transition: opacity .4s var(--ease); }
+  .hero-ball-tag i { width: 6px; height: 6px; border-radius: 50%; background: #7cf2b0; box-shadow: 0 0 7px #7cf2b0; }
+  .hero-ball-tag b { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---- goal payoff ---- */
+  .goal-fx { position: absolute; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0; }
+  .goal-ring { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #7cf2b0;
+    box-shadow: 0 0 18px rgba(124,242,176,.65), inset 0 0 10px rgba(124,242,176,.4); }
+  .goal-chip { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #0e160a;
+    background: #7cf2b0; padding: 4px 11px; border-radius: 999px; box-shadow: 0 0 16px rgba(124,242,176,.5); }
+  .goal-burst { position: absolute; left: 50%; top: 17px; width: 0; height: 0; }
+  .spark { position: absolute; left: -2.5px; top: -2.5px; width: 5px; height: 5px; border-radius: 50%;
+    background: #7cf2b0; box-shadow: 0 0 8px #7cf2b0; opacity: 0; }
+  .spark.w { background: #eafbe4; box-shadow: 0 0 6px #eafbe4; }
+
+  /* ---- goal banner ---- */
+  .goal-banner { position: absolute; left: 50%; top: clamp(112px, 17vh, 170px); transform: translate(-50%, 0);
+    display: flex; flex-direction: column; align-items: center; gap: 5px; opacity: 0; text-align: center; }
+  .gb-word { font-family: var(--font-display); font-weight: 600; font-size: clamp(36px, 4.6vw, 58px);
+    line-height: 1; letter-spacing: .18em; text-transform: uppercase; color: #fff; padding-left: .18em;
+    text-shadow: 0 0 34px rgba(124,242,176,.6), 0 2px 18px rgba(0,0,0,.45); }
+  .gb-meta { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: #7cf2b0;
+    text-shadow: 0 1px 10px rgba(0,0,0,.5); }
+  .gb-meta b { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---- tracked players (11 v 11) — the sim positions them via transform
+     deltas from their SSR anchors; `translate` keeps them centered ---- */
+  .pdot { position: absolute; width: 13px; height: 13px; border-radius: 50%;
+    background: #c9402f; border: 1.5px solid rgba(255,255,255,.85);
+    box-shadow: 0 1px 5px rgba(0,0,0,.45); opacity: 0; translate: -50% -50%;
+    animation: pdot-in .5s var(--ease) forwards; will-change: transform; }
+  .pdot.w { background: #eef1ec; }
+  .pdot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1px solid rgba(255,255,255,.3); }
+  @keyframes pdot-in { to { opacity: .95; } }
+
+  .hero-inner { position: absolute; inset: 0; }
+
+  /* ---- live analytics readout (top-left) ---- */
+  .hero-hud { position: absolute; left: var(--gutter); top: clamp(98px, 13vh, 128px); display: flex; flex-direction: column; gap: 12px; }
+  .hud-live { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: #eafbe4; }
+  .hud-live i { width: 7px; height: 7px; border-radius: 50%; background: #7cf2b0; box-shadow: 0 0 9px #7cf2b0; animation: hud-pulse 2s ease-in-out infinite; }
+  @keyframes hud-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .hud-stat { display: flex; flex-direction: column; gap: 3px; }
+  .hud-stat b { font-family: var(--font-display); font-weight: 600; font-size: 25px; line-height: 1; letter-spacing: -.02em; color: #fff; font-variant-numeric: tabular-nums; }
+  .hud-stat b em { font-style: normal; font-size: .46em; margin-left: 3px; color: rgba(255,255,255,.72); }
+  .hud-stat .l { font-size: 11.5px; color: rgba(255,255,255,.7); }
+
+  .hero-content { position: absolute; left: var(--gutter); bottom: clamp(76px, 12vh, 120px); right: var(--gutter); }
+  .hero-h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(44px, 8vw, 108px); line-height: .94; letter-spacing: -.035em; color: #fff; max-width: 14ch; }
+
+  .hero-proof { position: absolute; right: var(--gutter); top: clamp(98px, 13vh, 128px);
+    display: inline-flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 450; color: rgba(255,255,255,.92);
+    background: rgba(14,22,10,.42); border: 1px solid rgba(255,255,255,.22); padding: 7px 14px 7px 7px; border-radius: 999px; backdrop-filter: blur(6px); }
+  .hero-avatars { display: inline-flex; }
+  .hero-avatars i { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%;
+    background: #dfe6d6; color: var(--green-deep); font-size: 10px; font-weight: 700; font-style: normal; border: 2px solid rgba(14,22,10,.5); margin-left: -10px; }
+  .hero-avatars i:first-child { margin-left: 0; }
+
+  /* ---- scroll-down affordance (bottom center) ---- */
+  .hero-scroll { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px; color: #fff; }
+  .hs-label { font-size: 10px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.72); }
+  .hs-circle { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.45); background: rgba(14,22,10,.3); backdrop-filter: blur(6px);
+    transition: background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease);
+    animation: hs-bob 2.6s ease-in-out infinite; }
+  .hs-circle svg { width: 16px; height: 16px; }
+  .hero-scroll:hover .hs-circle { background: #fff; color: var(--green-deep); border-color: #fff; animation-play-state: paused; }
+  @keyframes hs-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+
+  @media (max-width: 860px) { .hero-hud { top: clamp(92px, 12vh, 116px); gap: 8px; } .hud-stat b { font-size: 21px; } }
+  @media (max-width: 640px) {
+    .hero-proof, .hero-ball-tag, .goal-chip { display: none; }
+    .pdot { width: 10px; height: 10px; border-width: 1px; }
+    .pdot::after { inset: -3px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-ball { opacity: 1; left: 68%; top: 48%; }
+    .pdot { animation: none; opacity: .95; }
+    .goal-fx { display: none; }
+    .hud-live i { animation: none; }
+    .hs-circle { animation: none; }
+    .ret-spin { animation: none; }
+  }
+</style>
