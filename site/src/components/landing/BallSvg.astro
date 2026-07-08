@@ -1,0 +1,82 @@
+---
+/**
+ * BallSvg — high-detail soccer ball (head-on truncated icosahedron).
+ * Rim patches are squashed radially for sphere perspective, seams run on
+ * radial great circles, and limb darkening + a specular highlight sell the
+ * volume. Animations rotate the `rollClass` group only, so the lighting
+ * layers stay fixed while the surface rolls. `idp` namespaces the SVG defs
+ * so multiple balls can coexist on one page.
+ */
+const { idp = "kb", rollClass = "ball-roll" } = Astro.props;
+const D2R = Math.PI / 180;
+const CX = 32, CY = 32;
+const ANG = [-90, -18, 54, 126, 198];
+
+/* center pentagon */
+const cR = 10.6;
+const centerPath =
+  "M " + ANG.map((a) => `${(CX + cR * Math.cos(a * D2R)).toFixed(2)} ${(CY + cR * Math.sin(a * D2R)).toFixed(2)}`).join(" L ") + " Z";
+
+/* rim patches — tangentially wide, radially squashed (perspective) */
+const rimDist = 27.2, rt = 9.6, rr = 5.8;
+const rimPath = (a) => {
+  const ar = a * D2R;
+  const C = [CX + rimDist * Math.cos(ar), CY + rimDist * Math.sin(ar)];
+  const u = [-Math.sin(ar), Math.cos(ar)];  // tangential axis
+  const v = [Math.cos(ar), Math.sin(ar)];   // radial axis (outward)
+  return (
+    "M " +
+    Array.from({ length: 5 }, (_, i) => {
+      const p = (-90 + i * 72) * D2R;       // -90 → a vertex points inward
+      const lx = rt * Math.cos(p), ly = rr * Math.sin(p);
+      return `${(C[0] + u[0] * lx + v[0] * ly).toFixed(2)} ${(C[1] + u[1] * lx + v[1] * ly).toFixed(2)}`;
+    }).join(" L ") +
+    " Z"
+  );
+};
+
+/* seams: center-pentagon vertex → rim-patch inner vertex (radial great circles) */
+const seams = ANG.map((a) => {
+  const ar = a * D2R;
+  return {
+    x1: (CX + cR * Math.cos(ar)).toFixed(2), y1: (CY + cR * Math.sin(ar)).toFixed(2),
+    x2: (CX + (rimDist - rr) * Math.cos(ar)).toFixed(2), y2: (CY + (rimDist - rr) * Math.sin(ar)).toFixed(2),
+  };
+});
+---
+<svg width="100%" height="100%" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <radialGradient id={`${idp}-shade`} cx="35%" cy="28%" r="80%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="48%" stop-color="#f2f5f8"/>
+      <stop offset="82%" stop-color="#d7dfe7"/>
+      <stop offset="100%" stop-color="#b3bfcc"/>
+    </radialGradient>
+    <radialGradient id={`${idp}-limb`} cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(18,25,33,0)"/>
+      <stop offset="74%" stop-color="rgba(18,25,33,0)"/>
+      <stop offset="100%" stop-color="rgba(18,25,33,.32)"/>
+    </radialGradient>
+    <radialGradient id={`${idp}-spec`} cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(255,255,255,.85)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <clipPath id={`${idp}-clip`}><circle cx="32" cy="32" r="30"/></clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill={`url(#${idp}-shade)`}/>
+  <g class={`roll ${rollClass}`} clip-path={`url(#${idp}-clip)`} fill="#1d242e" stroke="#1d242e" stroke-width="1.1" stroke-linejoin="round">
+    <path d={centerPath}/>
+    {ANG.map((a) => <path d={rimPath(a)}/>)}
+    <g fill="none" stroke-width="1.3" opacity=".6" stroke-linecap="round">
+      {seams.map((s) => <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}/>)}
+    </g>
+  </g>
+  <circle cx="32" cy="32" r="30" fill={`url(#${idp}-limb)`}/>
+  <ellipse cx="22" cy="17" rx="11" ry="8" fill={`url(#${idp}-spec)`} opacity=".55"/>
+  <circle cx="32" cy="32" r="29.6" fill="none" stroke="rgba(15,20,26,.35)" stroke-width="1"/>
+</svg>
+
+<style>
+  svg { display: block; }
+  .roll { transform-box: view-box; transform-origin: 50% 50%; }
+</style>

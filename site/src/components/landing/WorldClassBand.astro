@@ -1,0 +1,140 @@
+---
+/** WorldClassBand — the closing CTA section. Deliberately NOT a second hero:
+ *  a quiet dark surface, a minimal upload → tracking → report visualization,
+ *  one decisive action, three trust signals, and the testimonial demoted to
+ *  a small supporting line. Answers "why shouldn't I try one match?" */
+import BallSvg from "./BallSvg.astro";
+const base = import.meta.env.BASE_URL;
+const trust = [
+  "Works with standard sideline video",
+  "No hardware required",
+  "Coach-ready report by the next morning",
+];
+const check = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+---
+<section class="wc" id="start">
+  <div class="wc-band bleed">
+    <img class="wc-bg" src={`${base}images/landing/hero-field.jpg`} alt="" aria-hidden="true" loading="lazy" />
+    <div class="wc-scrim" aria-hidden="true"></div>
+    <div class="wc-glow" aria-hidden="true"></div>
+    <div class="wc-ball" id="wcBall" aria-hidden="true"><BallSvg idp="wb" rollClass="wb-roll" /></div>
+    <div class="container wc-inner">
+      <div class="wc-pipe reveal" aria-hidden="true">
+        <span class="pp-node">match.mp4</span>
+        <span class="pp-flow"></span>
+        <span class="pp-node live"><i></i>tracking</span>
+        <span class="pp-flow"></span>
+        <span class="pp-node">coach report</span>
+      </div>
+
+      <h2 class="reveal" data-d="1">Send one match. Get a<br />coach-ready analysis.</h2>
+      <p class="wc-sub reveal" data-d="2">Your first match is free — the footage you already have, turned into
+         passing, possession, movement and clips your staff can use.</p>
+
+      <div class="wc-cta reveal" data-d="3">
+        <a class="btn btn-accent btn-lg" href={`${base}contact/`}>Upload one match — free
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a class="wc-alt" href={`${base}room/`}>or see a finished match room</a>
+      </div>
+
+      <ul class="wc-trust reveal" data-d="4">
+        {trust.map((t) => <li><span class="tick" set:html={check}></span>{t}</li>)}
+      </ul>
+
+      <figure class="wc-quote reveal" data-d="4">
+        <blockquote>“We drop in the sideline video after a game and by the next morning the staff has the clips we need.”</blockquote>
+        <figcaption>Coaching staff · college program · representative quote</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<style>
+  .wc-band { position: relative; overflow: hidden; isolation: isolate; min-height: 100svh;
+    display: flex; align-items: center; background: #141c10; }
+  /* overscan left-anchored: crops the right side so the pitch centers, same
+     treatment as the hero field */
+  .wc-bg { position: absolute; top: 0; left: 0; z-index: 0; height: 100%; width: 106%; max-width: none; object-fit: cover; object-position: left 45%; }
+  /* scrim keeps the white copy + CTA legible over the pitch photo */
+  .wc-scrim { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(12,20,8,.72) 0%, rgba(12,20,8,.58) 45%, rgba(12,20,8,.82) 100%); }
+  .wc-glow { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(56% 62% at 50% 36%, rgba(63,107,52,.42), transparent 70%); mix-blend-mode: screen; }
+
+  /* ball rolls across the field: above photo + scrim (z0), below text (z2) */
+  .wc-ball { position: absolute; left: 0; top: 0; z-index: 1; width: 56px; height: 56px;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,.4)); will-change: transform; pointer-events: none; }
+
+  .wc-inner { position: relative; z-index: 2; width: 100%; max-width: 800px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: var(--sect-pad-sm) 0; color: #fff; }
+
+  /* minimal processing visualization: upload → tracking → report */
+  .wc-pipe { display: inline-flex; align-items: center; gap: 12px; }
+  .pp-node { font-size: 12px; font-weight: 600; letter-spacing: .03em; color: rgba(255,255,255,.72);
+    border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.04);
+    padding: 6px 13px; border-radius: 999px; white-space: nowrap; }
+  .pp-node.live { color: #7cf2b0; border-color: rgba(124,242,176,.35); display: inline-flex; align-items: center; gap: 7px; }
+  .pp-node.live i { width: 6px; height: 6px; border-radius: 50%; background: #7cf2b0; box-shadow: 0 0 7px #7cf2b0;
+    animation: pp-pulse 2s ease-in-out infinite; }
+  @keyframes pp-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .pp-flow { width: clamp(28px, 5vw, 58px); height: 1px;
+    background: repeating-linear-gradient(90deg, rgba(255,255,255,.45) 0 5px, transparent 5px 10px);
+    animation: pp-flow 1.5s linear infinite; }
+  @keyframes pp-flow { to { background-position: 10px 0; } }
+
+  .wc-inner h2 { margin-top: var(--s7); font-size: clamp(30px, 4.6vw, 56px); font-weight: 600;
+    letter-spacing: -.03em; line-height: 1.02; color: #fff; }
+  .wc-sub { margin: var(--s4) 0 0; font-size: 16.5px; line-height: 1.55; color: rgba(255,255,255,.78); max-width: 46ch; }
+
+  .wc-cta { margin-top: var(--s6); display: flex; flex-direction: column; align-items: center; gap: var(--s3); }
+  .wc-alt { font-size: 14px; color: rgba(255,255,255,.62); text-decoration: underline;
+    text-underline-offset: 4px; text-decoration-color: rgba(255,255,255,.28); transition: color .25s var(--ease); }
+  .wc-alt:hover { color: #fff; }
+
+  .wc-trust { list-style: none; margin: var(--s6) 0 0; padding: 0;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s3) var(--s6); }
+  .wc-trust li { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: rgba(255,255,255,.72); }
+  .tick { display: inline-flex; width: 15px; height: 15px; color: #7cf2b0; flex: none; }
+  .tick :global(svg) { width: 15px; height: 15px; }
+
+  /* testimonial — supporting element, not a focal point */
+  .wc-quote { margin: var(--s8) 0 0; max-width: 54ch; }
+  .wc-quote blockquote { margin: 0; font-size: 15px; line-height: 1.55; color: rgba(255,255,255,.55); }
+  .wc-quote figcaption { margin-top: var(--s2); font-size: 12.5px; color: rgba(255,255,255,.38); }
+
+  @media (max-width: 640px) {
+    .wc-pipe { gap: 8px; }
+    .pp-node { font-size: 11px; padding: 5px 10px; }
+    .wc-trust { flex-direction: column; align-items: center; gap: var(--s3); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pp-flow, .pp-node.live i { animation: none; }
+    .wc-ball { display: none; }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const band = document.querySelector("#start .wc-band");
+    const ball = document.getElementById("wcBall");
+    if (!band || !ball || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const roll = ball.querySelector(".wb-roll");
+    let queued = false;
+    function place() {
+      queued = false;
+      const r = band.getBoundingClientRect();
+      // p: 0 as the section enters from the bottom → 1 as it leaves the top
+      const p = Math.max(0, Math.min(1, (window.innerHeight - r.top) / (window.innerHeight + r.height)));
+      const x = (r.width + 120) * p - 60;                 // roll across, in from both edges
+      const y = r.height * (0.66 + 0.16 * Math.sin(p * Math.PI * 2));
+      ball.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+      if (roll) roll.style.transform = `rotate(${(x * 0.7).toFixed(1)}deg)`;
+    }
+    const onScroll = () => { if (!queued) { queued = true; requestAnimationFrame(place); } };
+    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("resize", onScroll, { passive: true });
+    place();
+  })();
+</script>

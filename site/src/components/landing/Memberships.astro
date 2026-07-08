@@ -1,0 +1,50 @@
+---
+/** Memberships — three plans (Baseline pricing layout). Pricing is indicative;
+ *  the free tier is the real offer, the rest route to contact. */
+import ScrollNext from "./ScrollNext.astro";
+const base = import.meta.env.BASE_URL;
+const check = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+const plans = [
+  { name: "Starter", price: "Free", unit: "one match, on us", feats: ["One full match analysis", "Complete review room", "Possession & passing stats"], cta: "Start free", href: `${base}contact/`, featured: false },
+  { name: "Season", price: "Let’s talk", unit: "per team, per season", feats: ["Every match analyzed", "Heatmaps & movement load", "Reviewable, shareable clips", "Priority turnaround"], cta: "Contact us", href: `${base}contact/`, featured: true },
+  { name: "Club", price: "Custom", unit: "for whole programs", feats: ["Full-season coverage", "Team & staff accounts", "Custom exports", "Dedicated support"], cta: "Contact us", href: `${base}contact/`, featured: false },
+];
+---
+<section class="plans section" id="plans" data-bg="#EDEBE2" data-glow-x="50%" data-glow-y="8%" data-glow-c="rgba(176,138,66,.18)">
+  <div class="container">
+    <h2 class="plans-head reveal">Plans for every program.</h2>
+    <div class="plans-grid">
+      {plans.map((p, i) => (
+        <div class={`plan reveal ${p.featured ? "is-featured" : ""}`} data-d={String(i + 1)}>
+          {p.featured && <span class="plan-flag">Most popular</span>}
+          <span class="plan-name">{p.name}</span>
+          <ul class="plan-feats">
+            {p.feats.map((f) => <li><span class="plan-check" set:html={check}></span>{f}</li>)}
+          </ul>
+          <div class="plan-price"><b>{p.price}</b><span>{p.unit}</span></div>
+          <a class={`btn btn-block ${p.featured ? "btn-primary" : "btn-ghost"}`} href={p.href}>{p.cta}</a>
+        </div>
+      ))}
+    </div>
+  </div>
+  <ScrollNext to="start" />
+</section>
+
+<style>
+  .plans { position: relative; background: transparent; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: var(--s8) 0; }
+  .plans-head { text-align: center; font-size: clamp(30px, 4.6vw, 54px); font-weight: 600; letter-spacing: -.03em; margin-bottom: var(--s8); }
+  .plans-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); max-width: 1040px; margin: 0 auto; align-items: start; }
+  .plan { position: relative; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--s6); }
+  .plan.is-featured { border-color: var(--ink); box-shadow: var(--sh); }
+  .plan-flag { position: absolute; top: -11px; left: var(--s6); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    color: #fff; background: var(--green); padding: 4px 10px; border-radius: 999px; }
+  .plan-name { font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .plan-feats { list-style: none; margin: var(--s5) 0; padding: 0; display: grid; gap: var(--s3); }
+  .plan-feats li { display: flex; align-items: flex-start; gap: var(--s3); font-size: 14.5px; color: var(--ink); }
+  .plan-check { flex: none; display: inline-flex; width: 20px; height: 20px; color: var(--green); }
+  .plan-check svg { width: 20px; height: 20px; }
+  .plan-price { margin: var(--s5) 0 var(--s5); }
+  .plan-price b { font-family: var(--font-display); font-size: clamp(26px, 3vw, 34px); font-weight: 600; letter-spacing: -.02em; }
+  .plan-price span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  @media (max-width: 820px){ .plans-grid { grid-template-columns: 1fr; max-width: 420px; } }
+</style>
