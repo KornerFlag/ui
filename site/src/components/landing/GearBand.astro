@@ -1,6 +1,7 @@
 ---
 import Heatmap from "./Heatmap.astro";
 import ScrollNext from "./ScrollNext.astro";
+import { r2Asset } from "../../lib/site";
 const base = import.meta.env.BASE_URL;
 const cards = [
   { kind: "img", src: `${base}data/nc_state_stats_thumbnail.jpg`, name: "Match room", tag: "Video + stats" },
@@ -10,7 +11,7 @@ const cards = [
 ---
 <section class="gear" id="room">
   <div class="gear-band bleed">
-    <img class="gear-bg" src={`${base}images/landing/band-wide.webp`} alt="" aria-hidden="true" loading="lazy" />
+    <img class="gear-bg" src={r2Asset("images/landing/band-wide.webp")} alt="" aria-hidden="true" loading="lazy" />
     <div class="gear-scrim" aria-hidden="true"></div>
     <div class="container gear-inner">
       <div class="gear-head reveal">

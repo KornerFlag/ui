@@ -1,13 +1,13 @@
 ---
 /** FeatureGrid — big heading + three tall photo cards (Baseline "Training Paths"). */
 import ScrollNext from "./ScrollNext.astro";
-const base = import.meta.env.BASE_URL;
+import { r2Asset } from "../../lib/site";
 const cards = [
-  { img: `${base}images/landing/grid-passing.webp`, label: "Passing & possession",
+  { img: r2Asset("images/landing/grid-passing.webp"), label: "Passing & possession",
     body: "How the ball was circulated, which players linked phases, and where possession broke down." },
-  { img: `${base}images/landing/grid-tactics.webp`, label: "Formation & shape",
+  { img: r2Asset("images/landing/grid-tactics.webp"), label: "Formation & shape",
     body: "Team shape and spacing across the match, from build-up to the final third." },
-  { img: `${base}images/landing/grid-movement.webp`, label: "Movement & distance",
+  { img: r2Asset("images/landing/grid-movement.webp"), label: "Movement & distance",
     body: "Distance covered and movement load by player — see who carried the work." },
 ];
 ---
