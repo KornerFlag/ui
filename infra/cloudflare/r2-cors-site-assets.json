@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "id": "site-assets-get",
+      "allowed": {
+        "methods": ["GET"],
+        "origins": ["https://kornerflag.github.io", "http://localhost:4321"],
+        "headers": ["*"]
+      },
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

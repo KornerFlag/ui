@@ -12,6 +12,12 @@ export function withBase(path: string | null | undefined): string {
   return `${base}${normalizedPath}`;
 }
 
+export function r2Asset(path: string): string {
+  const base = (import.meta.env.PUBLIC_R2_ASSETS_URL || "").replace(/\/$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${normalizedPath}`;
+}
+
 export function formatDuration(totalSeconds: number | null | undefined): string {
   const seconds = Math.max(0, Math.round(totalSeconds || 0));
   const minutes = Math.floor(seconds / 60);
