@@ -28,6 +28,12 @@ jobs:
         with:
           path: ./site
           node-version: 22
+        env:
+          # Public base URL of the kornerflag-site-assets R2 bucket (r2.dev).
+          # Not a secret — a public CDN URL. Set as a repo Variable so the
+          # production build resolves r2Asset() paths instead of emitting
+          # broken root-relative URLs. See docs/decisions/0001-cloudflare-r2-storage.md.
+          PUBLIC_R2_ASSETS_URL: ${{ vars.PUBLIC_R2_ASSETS_URL }}
 
   deploy:
     needs: build
