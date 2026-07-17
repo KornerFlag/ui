@@ -1,6 +1,6 @@
 # Cloudflare R2 Storage Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. (This plan is a poor fit for subagent-driven-development: Task 1 requires a live interactive browser OAuth step from the human operator, and every later task depends on URLs/values Task 1 produces — there is no independent parallel work to hand off.)
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking. (This plan is a poor fit for subagent-driven-development: Task 1 requires a live interactive browser OAuth step from the human operator, and every later task depends on URLs/values Task 1 produces — there is no independent parallel work to hand off.)
 
 **Goal:** Provision 3 Cloudflare R2 buckets (public site-assets CDN + 2 private buckets for pipeline data), migrate the heavy video/image assets currently committed to the Astro site's git repo into the public bucket, and document the storage conventions.
 
@@ -27,7 +27,7 @@
 **Interfaces:**
 - Produces: 3 R2 buckets in the Cloudflare account (`kornerflag-site-assets`, `kornerflag-footage`, `kornerflag-outputs`); a public `r2.dev` URL for `kornerflag-site-assets` (captured for Task 2); a CORS policy applied to `kornerflag-site-assets`.
 
-- [ ] **Step 1: Log in to Cloudflare via wrangler**
+- [x] **Step 1: Log in to Cloudflare via wrangler**
 
 Run (from repo root):
 ```bash
@@ -35,12 +35,12 @@ npx wrangler login
 ```
 This opens a browser OAuth flow. Complete the authorization in the browser, then return to the terminal.
 
-- [ ] **Step 2: Verify authentication**
+- [x] **Step 2: Verify authentication**
 
 Run: `npx wrangler whoami`
 Expected: prints an authenticated account email/name, not "You are not authenticated."
 
-- [ ] **Step 3: Create the 3 buckets**
+- [x] **Step 3: Create the 3 buckets**
 
 ```bash
 npx wrangler r2 bucket create kornerflag-site-assets
@@ -49,24 +49,24 @@ npx wrangler r2 bucket create kornerflag-outputs
 ```
 Expected: each prints a success message (`Created bucket 'kornerflag-...'`).
 
-- [ ] **Step 4: Verify all 3 buckets exist**
+- [x] **Step 4: Verify all 3 buckets exist**
 
 Run: `npx wrangler r2 bucket list`
 Expected: output includes all three bucket names.
 
-- [ ] **Step 5: Enable the public development URL on the site-assets bucket only**
+- [x] **Step 5: Enable the public development URL on the site-assets bucket only**
 
 ```bash
 npx wrangler r2 bucket dev-url enable kornerflag-site-assets
 ```
 This prompts for confirmation (type `y` / follow the prompt) since it's a public-exposure action — confirm it.
 
-- [ ] **Step 6: Capture the public URL**
+- [x] **Step 6: Capture the public URL**
 
 Run: `npx wrangler r2 bucket dev-url get kornerflag-site-assets`
 Expected: prints a URL of the form `https://pub-<hash>.r2.dev` with status "Enabled". **Write this URL down** — it's `PUBLIC_R2_ASSETS_URL` for Task 2.
 
-- [ ] **Step 7: Confirm the private buckets have no public dev URL**
+- [x] **Step 7: Confirm the private buckets have no public dev URL**
 
 ```bash
 npx wrangler r2 bucket dev-url get kornerflag-footage
@@ -74,7 +74,7 @@ npx wrangler r2 bucket dev-url get kornerflag-outputs
 ```
 Expected: both show disabled/not-enabled status. This is the default — no action needed, just confirming nothing was accidentally exposed.
 
-- [ ] **Step 8: Write and apply the CORS policy for site-assets**
+- [x] **Step 8: Write and apply the CORS policy for site-assets**
 
 Create `infra/cloudflare/r2-cors-site-assets.json`:
 ```json
@@ -94,12 +94,12 @@ npx wrangler r2 bucket cors set kornerflag-site-assets --file infra/cloudflare/r
 ```
 Expected: success message. If it errors on field names, run `npx wrangler r2 bucket cors set --help` and `npx wrangler r2 bucket cors list kornerflag-site-assets` after adjusting to confirm the applied schema — the AWS S3-style `AllowedOrigins`/`AllowedMethods`/`AllowedHeaders`/`MaxAgeSeconds` casing is what R2 expects, but fix inline against the actual error if it differs.
 
-- [ ] **Step 9: Verify CORS applied**
+- [x] **Step 9: Verify CORS applied**
 
 Run: `npx wrangler r2 bucket cors list kornerflag-site-assets`
 Expected: shows the rule with `https://kornerflag.github.io` and `http://localhost:4321` as allowed origins.
 
-- [ ] **Step 10: Commit the CORS config file**
+- [x] **Step 10: Commit the CORS config file**
 
 ```bash
 git add infra/cloudflare/r2-cors-site-assets.json
@@ -118,12 +118,12 @@ git commit -m "chore(storage): apply R2 CORS policy for site-assets bucket"
 **Interfaces:**
 - Produces: `r2Asset(path: string): string` — exported from `site/src/lib/site.ts`, same module as `withBase`. Given a bucket-relative path (with or without leading `/`), returns the full public R2 URL. Consumed by Task 3.
 
-- [ ] **Step 1: Confirm `.env` is already gitignored for the `site/` subdirectory**
+- [x] **Step 1: Confirm `.env` is already gitignored for the `site/` subdirectory**
 
 Run: `git check-ignore -v site/.env || echo "NOT IGNORED"`
 Expected: prints a match against the root `.gitignore`'s `.env` line (confirms `site/.env` won't be committed). If `NOT IGNORED` prints instead, add a `.env` line to `site/.gitignore` (create the file if it doesn't exist) before proceeding.
 
-- [ ] **Step 2: Add the `r2Asset` helper**
+- [x] **Step 2: Add the `r2Asset` helper**
 
 In `site/src/lib/site.ts`, immediately after the `withBase` function (currently lines 1–12), add:
 
@@ -135,7 +135,7 @@ export function r2Asset(path: string): string {
 }
 ```
 
-- [ ] **Step 3: Create `site/.env.example`**
+- [x] **Step 3: Create `site/.env.example`**
 
 ```
 # Public base URL of the kornerflag-site-assets R2 bucket (r2.dev dev URL).
@@ -143,7 +143,7 @@ export function r2Asset(path: string): string {
 PUBLIC_R2_ASSETS_URL=
 ```
 
-- [ ] **Step 4: Create your local `site/.env` with the real value**
+- [x] **Step 4: Create your local `site/.env` with the real value**
 
 Using the URL captured in Task 1 Step 6:
 ```bash
@@ -151,12 +151,12 @@ echo "PUBLIC_R2_ASSETS_URL=https://pub-<hash>.r2.dev" > site/.env
 ```
 (Replace `https://pub-<hash>.r2.dev` with the actual URL — no trailing slash.)
 
-- [ ] **Step 5: Verify the helper compiles**
+- [x] **Step 5: Verify the helper compiles**
 
 Run: `cd site && npx astro check 2>&1 | grep -i "site.ts" || echo "no errors in site.ts"`
 Expected: `no errors in site.ts` (or no output referencing that file).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add site/src/lib/site.ts site/.env.example
@@ -176,7 +176,7 @@ git commit -m "feat(storage): add r2Asset() helper and R2 env scaffolding"
 **Interfaces:**
 - Consumes: `r2Asset(path: string): string` from `site/src/lib/site.ts` (Task 2).
 
-- [ ] **Step 1: Upload the 4 images to the bucket**
+- [x] **Step 1: Upload the 4 images to the bucket**
 
 From repo root:
 ```bash
@@ -187,7 +187,7 @@ npx wrangler r2 object put kornerflag-site-assets/images/landing/band-wide.webp 
 ```
 Expected: each prints a success message.
 
-- [ ] **Step 2: Verify each is publicly fetchable**
+- [x] **Step 2: Verify each is publicly fetchable**
 
 Run (substitute your actual `PUBLIC_R2_ASSETS_URL`):
 ```bash
@@ -196,7 +196,7 @@ curl -sI "$PUBLIC_R2_ASSETS_URL/images/landing/band-wide.webp" | head -1
 ```
 Expected: `HTTP/2 200` (or `HTTP/1.1 200`) for both.
 
-- [ ] **Step 3: Update `FeatureGrid.astro`**
+- [x] **Step 3: Update `FeatureGrid.astro`**
 
 Current (top of file):
 ```astro
@@ -233,7 +233,7 @@ const cards = [
 ```
 (`base` is dropped — nothing else in this file uses it.)
 
-- [ ] **Step 4: Update `GearBand.astro`**
+- [x] **Step 4: Update `GearBand.astro`**
 
 Current (top of file):
 ```astro
@@ -273,27 +273,27 @@ Replace with:
 <img class="gear-bg" src={r2Asset("images/landing/band-wide.webp")} alt="" aria-hidden="true" loading="lazy" />
 ```
 
-- [ ] **Step 5: Run the dev server and visually verify**
+- [x] **Step 5: Run the dev server and visually verify**
 
 ```bash
 cd site && npm run dev
 ```
 Open `http://localhost:4321/ui/` in a browser. Scroll to the "Insight designed for every match" section (FeatureGrid) and the "Everything lands in one calm match room" section (GearBand). Open browser devtools → Network tab, reload, and confirm the `grid-*.webp` and `band-wide.webp` requests go to `pub-<hash>.r2.dev`, not `localhost`/`/ui/images/...`, and render correctly (no broken images).
 
-- [ ] **Step 6: Delete the migrated local files**
+- [x] **Step 6: Delete the migrated local files**
 
 ```bash
 rm site/public/images/landing/grid-passing.webp site/public/images/landing/grid-tactics.webp site/public/images/landing/grid-movement.webp site/public/images/landing/band-wide.webp
 ```
 
-- [ ] **Step 7: Re-run dev server to confirm nothing else references the deleted files**
+- [x] **Step 7: Re-run dev server to confirm nothing else references the deleted files**
 
 ```bash
 cd site && npm run build
 ```
 Expected: build succeeds with no missing-asset errors (Astro's build doesn't statically resolve string-built `img.src` URLs, but this confirms nothing else in the build pipeline touches those paths, e.g. an `astro:assets` import).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add site/src/components/landing/FeatureGrid.astro site/src/components/landing/GearBand.astro
@@ -312,7 +312,7 @@ git commit -m "feat(storage): serve landing images from R2 instead of the repo"
 **Interfaces:**
 - Consumes: `clipVideo(clip)` in `site/src/lib/site.ts` (unchanged — already checks `clip.local_video_url` first, and `withBase()` already passes absolute `http(s)://` URLs through unmodified, so no code change is needed here, only data).
 
-- [ ] **Step 1: Upload both clips**
+- [x] **Step 1: Upload both clips**
 
 ```bash
 npx wrangler r2 object put kornerflag-site-assets/video/demo/08fd33_4_preview.mp4 --file site/public/data/08fd33_4_preview.mp4
@@ -320,7 +320,7 @@ npx wrangler r2 object put kornerflag-site-assets/video/demo/nc_state_stats_prev
 ```
 Expected: success messages. (These are 1.5MB and 848KB — outside the ≤6MB hero-loop cap but within the ≤15MB demo-clip cap from the spec, so no re-encode needed.)
 
-- [ ] **Step 2: Verify both are publicly fetchable**
+- [x] **Step 2: Verify both are publicly fetchable**
 
 ```bash
 curl -sI "$PUBLIC_R2_ASSETS_URL/video/demo/08fd33_4_preview.mp4" | head -1
@@ -328,7 +328,7 @@ curl -sI "$PUBLIC_R2_ASSETS_URL/video/demo/nc_state_stats_preview.mp4" | head -1
 ```
 Expected: `200` for both.
 
-- [ ] **Step 3: Update `manifest.json`**
+- [x] **Step 3: Update `manifest.json`**
 
 In `site/public/data/manifest.json`, change:
 ```json
@@ -348,27 +348,27 @@ to:
 ```
 Leave every other field (`thumbnail_url`, `stats_url`, `heatmap_team*_url`, `positions_url`, `video_url`) untouched — they're out of this migration's scope.
 
-- [ ] **Step 4: Verify in the match room and clip pages**
+- [x] **Step 4: Verify in the match room and clip pages**
 
 ```bash
 cd site && npm run dev
 ```
 Visit `http://localhost:4321/ui/room/` and `http://localhost:4321/ui/clips/08fd33_4/`. Confirm the video players load and play, and devtools Network tab shows the `<video>` `src` request going to `pub-<hash>.r2.dev`.
 
-- [ ] **Step 5: Delete the migrated local files**
+- [x] **Step 5: Delete the migrated local files**
 
 ```bash
 rm site/public/data/08fd33_4_preview.mp4 site/public/data/nc_state_stats_preview.mp4
 ```
 
-- [ ] **Step 6: Rebuild to confirm nothing breaks**
+- [x] **Step 6: Rebuild to confirm nothing breaks**
 
 ```bash
 cd site && npm run build
 ```
 Expected: build succeeds.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add site/public/data/manifest.json
@@ -385,7 +385,7 @@ git commit -m "feat(storage): serve demo preview clips from R2 instead of the re
 
 **Interfaces:** None (documentation only).
 
-- [ ] **Step 1: Write the decision doc**
+- [x] **Step 1: Write the decision doc**
 
 Create `docs/decisions/0001-cloudflare-r2-storage.md`:
 
@@ -451,7 +451,7 @@ only if/when a CI job needs to upload new assets automatically (manual
   done by this decision — it's the next step for whoever owns that lane.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/decisions/0001-cloudflare-r2-storage.md
@@ -466,21 +466,21 @@ git commit -m "docs(storage): record R2 storage decision and bucket conventions"
 
 **Interfaces:** None.
 
-- [ ] **Step 1: Full clean build**
+- [x] **Step 1: Full clean build**
 
 ```bash
 cd site && rm -rf dist .astro && npm run build
 ```
 Expected: succeeds with no errors.
 
-- [ ] **Step 2: Preview the production build**
+- [x] **Step 2: Preview the production build**
 
 ```bash
 npm run preview
 ```
 Visit the printed local URL, check the landing page (FeatureGrid, GearBand sections) and `/room/` and a `/clips/<slug>/` page. Confirm all migrated images/video load from `pub-<hash>.r2.dev` with no broken assets or console errors.
 
-- [ ] **Step 3: Confirm the private buckets reject public access**
+- [x] **Step 3: Confirm the private buckets reject public access**
 
 ```bash
 curl -sI "https://pub-does-not-exist.r2.dev/anything" | head -1   # sanity: r2.dev requires the bucket's own enabled subdomain
@@ -489,9 +489,31 @@ npx wrangler r2 bucket dev-url get kornerflag-outputs
 ```
 Expected: both still show disabled — no accidental public exposure.
 
-- [ ] **Step 4: Confirm `site/public/` shrank**
+- [x] **Step 4: Confirm `site/public/` shrank**
 
 ```bash
 du -sh site/public
 ```
 Expected: noticeably smaller than the original ~10M (the 2 mp4s + 4 webps totaling ~4MB are gone).
+
+---
+
+## Completion
+
+**Status: Complete — 2026-07-17.** All 6 tasks implemented and committed (see
+`git log`, commits `4029a30`..`74a9db9`). Task 6 verification re-run live:
+
+- Clean Astro build passes (10 pages, no errors).
+- All 4 public assets return `HTTP 200` from the `r2.dev` URL (2 landing WebPs
+  spot-checked + both demo `.mp4`s).
+- Both private buckets (`kornerflag-footage`, `kornerflag-outputs`) report
+  "Public access via the r2.dev URL is disabled."
+- `site/public/` down to 6.3M (migrated media removed).
+
+Shipped in PR #3 (`feat/bg-video` → `main`).
+
+**Known follow-up (not part of this plan):** the GitHub Pages deploy workflow
+(`.github/workflows/deploy.yml`) does not yet inject `PUBLIC_R2_ASSETS_URL`, so a
+production build resolves the 4 landing images to broken root-relative paths.
+Set it as a repo Variable and pass it to the `withastro/action` build step before
+merging. (Demo videos are unaffected — `manifest.json` carries absolute URLs.)
